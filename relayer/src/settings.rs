@@ -2,7 +2,9 @@ use config::{Config, ConfigError, File};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Settings {}
+pub struct Settings {
+    pub port: u16,
+}
 
 impl Settings {
     /// Loads settings from a TOML file.
