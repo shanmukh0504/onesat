@@ -102,7 +102,7 @@ const Button: React.FC<ButtonProps> = ({
                         right: '-32px',
                         bottom: '-32px',
                         pointerEvents: 'auto',
-                        zIndex: 10
+                        zIndex: 1
                     }}
                 />
             )}
@@ -127,7 +127,7 @@ const Button: React.FC<ButtonProps> = ({
                             ? '4px 4px 0 0 #9ea393'
                             : 'none',
                     position: 'relative',
-                    zIndex: 1
+                    zIndex: 2
                 }}
                 onMouseDown={handleMouseDown}
                 onMouseUp={handleMouseUp}
