@@ -5,7 +5,7 @@ use core::traits::Into;
 use starknet::{ClassHash, ContractAddress};
 
 #[starknet::contract]
-mod registry {
+mod registryContract {
     use core::hash::HashStateTrait;
     use core::num::traits::Zero;
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};

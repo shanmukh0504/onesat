@@ -2,10 +2,18 @@
 version = 1
 
 [[package]]
+name = "alexandria_math"
+version = "0.5.2"
+source = "registry+https://scarbs.xyz/"
+checksum = "sha256:b5910e4f17fbb9988f23f34d63a59fc82e560992fe4a72f31f3d3854741c5340"
+
+[[package]]
 name = "contracts"
 version = "0.1.0"
 dependencies = [
+ "alexandria_math",
  "openzeppelin",
+ "openzeppelin_token",
  "snforge_std",
 ]
 
@@ -129,15 +137,15 @@ checksum = "sha256:44f32d242af1e43982decc49c563e613a9b67ade552f5c3d5cde504e92f74
 
 [[package]]
 name = "snforge_scarb_plugin"
-version = "0.50.0"
+version = "0.45.0"
 source = "registry+https://scarbs.xyz/"
-checksum = "sha256:8c29e5519362d22f2c802e4e348da846de3898cbaeac19b58aded6a009bf188e"
+checksum = "sha256:568482e8c40e7018d9ea729d6df3d5ec22b665cfff1e89181d8ad31bacca11cc"
 
 [[package]]
 name = "snforge_std"
-version = "0.50.0"
+version = "0.45.0"
 source = "registry+https://scarbs.xyz/"
-checksum = "sha256:db3a9de47952c699f8f3ce649b5b01f09c1f9c170f38b3c7a8df8e50a0188e9b"
+checksum = "sha256:c08b359c266e45c4e71b71baa3c4af8dae7fc5416fc8168f0983e5c9a2ac0abe"
 dependencies = [
  "snforge_scarb_plugin",
 ]

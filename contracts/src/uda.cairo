@@ -4,13 +4,18 @@ use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
 
 #[starknet::contract]
 mod uda {
+    use starknet::get_contract_address;
+    use alexandria_math::i257::i257;
+    use core::num::traits::Zero;
     use crate::interfaces::IVault;
+    use crate::interfaces::{IVesuDispatcherTrait, IVesuDispatcher, ModifyPositionParams, Amount, AmountDenomination};
+    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
     use super::{ContractAddress, EventEmitter, StoragePointerReadAccess, StoragePointerWriteAccess};
 
     #[storage]
     struct Storage {
         user: ContractAddress,
-        nonce: u128,
+        action: u128,
         amount: u256,
         token: ContractAddress,
         target: ContractAddress,
@@ -36,16 +41,20 @@ mod uda {
     fn constructor(
         ref self: ContractState,
         user: ContractAddress,
-        nonce: u128,
+        action: u128,
         amount: u256,
         token: ContractAddress,
         target: ContractAddress,
     ) {
         self.user.write(user);
-        self.nonce.write(nonce);
+        self.action.write(action);
         self.amount.write(amount);
         self.token.write(token);
         self.target.write(target);
+
+        if action == 1 {
+            self.deposit_vesu(target, amount, token, user);
+        }
 
         self.emit(Initialized { user, token, amount_low: amount.low, amount_high: amount.high });
     }
@@ -55,8 +64,8 @@ mod uda {
         fn get_user(self: @ContractState) -> ContractAddress {
             self.user.read()
         }
-        fn get_nonce(self: @ContractState) -> u128 {
-            self.nonce.read()
+        fn get_action(self: @ContractState) -> u128 {
+            self.action.read()
         }
         fn get_amount(self: @ContractState) -> u256 {
             self.amount.read()
@@ -66,6 +75,22 @@ mod uda {
         }
         fn get_target_address(self: @ContractState) -> ContractAddress {
             self.target.read()
+        }
+
+        fn deposit_vesu(self: @ContractState, target_address: ContractAddress, amount: u256, token: ContractAddress, user: ContractAddress) {
+            let vesu = IVesuDispatcher { contract_address: target_address };
+
+            let erc20 = IERC20Dispatcher { contract_address: token };
+            erc20.approve(target_address, erc20.balance_of(get_contract_address()));
+
+
+            vesu.modify_position(ModifyPositionParams {
+                collateral_asset: token,
+                debt_asset: token,
+                user: user,
+                collateral: Amount { denomination: AmountDenomination::Assets, value: amount.into() },
+                debt: Amount { denomination: AmountDenomination::Assets, value: 0.into() },
+            });
         }
     }
 }

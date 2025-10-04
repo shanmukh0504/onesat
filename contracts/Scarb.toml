@@ -8,7 +8,9 @@ edition = "2024_07"
 [dependencies]
 openzeppelin = "0.20.0"
 starknet = "2.11.4"
-snforge_std = "0.50.0"
+snforge_std = "0.45.0"
+alexandria_math = "0.5.1"
+openzeppelin_token = "0.20.0"
 
 [[target.starknet-contract]]
 sierra = true
