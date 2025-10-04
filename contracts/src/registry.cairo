@@ -1,5 +1,4 @@
 use core::array::ArrayTrait;
-use core::hash::HashStateTrait;
 use core::pedersen::PedersenTrait;
 use core::traits::Into;
 use starknet::{ClassHash, ContractAddress};
@@ -13,7 +12,7 @@ mod registryContract {
     use starknet::get_contract_address;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
     use starknet::syscalls::deploy_syscall;
-    use crate::interfaces::IRegistry;
+    use crate::interfaces::{IVaultDispatcher, IVaultDispatcherTrait};
     use super::{ArrayTrait, ClassHash, ContractAddress, Into, PedersenTrait};
 
     const CONTRACT_ADDRESS_PREFIX: felt252 = 'STARKNET_CONTRACT_ADDRESS';
@@ -56,15 +55,15 @@ mod registryContract {
         fn predict_address(
             self: @ContractState,
             user: ContractAddress,
-            nonce: u128,
+            action: u128,
             amount: u256,
             token: ContractAddress,
             target: ContractAddress,
         ) -> ContractAddress {
             InternalImpl::_validate(user, amount, token, target);
-            let salt = InternalImpl::_compute_salt(user, nonce, amount, token, target);
+            let salt = InternalImpl::_compute_salt(user, action, amount, token, target);
             let calldata = InternalImpl::_build_constructor_calldata(
-                user, nonce, amount, token, target,
+                user, action, amount, token, target,
             );
             let calldata_hash = InternalImpl::_compute_constructor_hash(calldata.span());
             InternalImpl::_compute_address(salt, self.uda_class_hash.read(), calldata_hash)
@@ -73,15 +72,15 @@ mod registryContract {
         fn deploy_vault(
             ref self: ContractState,
             user: ContractAddress,
-            nonce: u128,
+            action: u128,
             amount: u256,
             token: ContractAddress,
             target: ContractAddress,
         ) -> ContractAddress {
             InternalImpl::_validate(user, amount, token, target);
-            let salt = InternalImpl::_compute_salt(user, nonce, amount, token, target);
+            let salt = InternalImpl::_compute_salt(user, action, amount, token, target);
             let calldata = InternalImpl::_build_constructor_calldata(
-                user, nonce, amount, token, target,
+                user, action, amount, token, target,
             );
             let predicted = {
                 let calldata_hash = InternalImpl::_compute_constructor_hash(calldata.span());
@@ -97,6 +96,9 @@ mod registryContract {
                     deployed, _,
                 )) => {
                     self.emit(VaultDeployed { vault: deployed, user, token });
+                    let vault = IVaultDispatcher { contract_address: deployed };
+                    vault.initializer(user, action, amount, token, target);
+
                     deployed
                 },
                 Result::Err(_e) => {
@@ -121,14 +123,14 @@ mod registryContract {
 
         fn _compute_salt(
             user: ContractAddress,
-            nonce: u128,
+            action: u128,
             amount: u256,
             token: ContractAddress,
             target: ContractAddress,
         ) -> felt252 {
             let mut h = PedersenTrait::new(0);
             h = h.update(user.into());
-            h = h.update(nonce.into());
+            h = h.update(action.into());
             h = h.update(amount.low.into());
             h = h.update(amount.high.into());
             h = h.update(token.into());
@@ -138,14 +140,14 @@ mod registryContract {
 
         fn _build_constructor_calldata(
             user: ContractAddress,
-            nonce: u128,
+            action: u128,
             amount: u256,
             token: ContractAddress,
             target: ContractAddress,
         ) -> Array<felt252> {
             let mut data: Array<felt252> = ArrayTrait::new();
             data.append(user.into());
-            data.append(nonce.into());
+            data.append(action.into());
             data.append(amount.low.into());
             data.append(amount.high.into());
             data.append(token.into());

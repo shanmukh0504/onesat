@@ -57,20 +57,20 @@ describe('Registry + UDA deterministic deploy (ERC20 pre-funding)', () => {
     const user = cairo.felt('0x111');
     const target = cairo.felt('0x222');
     const token = erc20Addr;
-    const nonce = 7n;
+    const action = 7n;
     const amount = cairo.uint256(1000n);
 
     // Predict address
-    const predicted: string = (await registry.predict_address(user, nonce, amount, token, target)).toString();
+    const predicted: string = (await registry.predict_address(user, action, amount, token, target)).toString();
 
     // Expect deploy to fail before funding
-    await expect(registry.deploy_vault(user, nonce, amount, token, target)).rejects.toThrow();
+    await expect(registry.deploy_vault(user, action, amount, token, target)).rejects.toThrow();
 
     // Mint to predicted
     await erc20.mint(predicted, amount);
 
     // Deploy and confirm predicted == deployed
-    const tx = await registry.deploy_vault(user, nonce, amount, token, target);
+    const tx = await registry.deploy_vault(user, action, amount, token, target);
     await provider.waitForTransaction(tx.transaction_hash);
 
     // Verify UDA state via calls

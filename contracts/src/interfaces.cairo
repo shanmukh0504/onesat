@@ -1,12 +1,12 @@
-use starknet::ContractAddress;
 use alexandria_math::i257::i257;
+use starknet::{ClassHash, ContractAddress};
 
 #[starknet::interface]
 pub trait IRegistry<TContractState> {
     fn predict_address(
         self: @TContractState,
         user: ContractAddress,
-        nonce: u128,
+        action: u128,
         amount: u256,
         token: ContractAddress,
         target: ContractAddress,
@@ -15,7 +15,7 @@ pub trait IRegistry<TContractState> {
     fn deploy_vault(
         ref self: TContractState,
         user: ContractAddress,
-        nonce: u128,
+        action: u128,
         amount: u256,
         token: ContractAddress,
         target: ContractAddress,
@@ -30,13 +30,30 @@ pub trait IVault<TContractState> {
     fn get_amount(self: @TContractState) -> u256;
     fn get_token(self: @TContractState) -> ContractAddress;
     fn get_target_address(self: @TContractState) -> ContractAddress;
-    fn deposit_vesu(self: @TContractState, target_address: ContractAddress, amount: u256, token: ContractAddress, user: ContractAddress);
+    fn deposit_vesu(
+        self: @TContractState,
+        target_address: ContractAddress,
+        amount: u256,
+        token: ContractAddress,
+    );
+    fn initializer(
+        ref self: TContractState,
+        user: ContractAddress,
+        action: u128,
+        amount: u256,
+        token: ContractAddress,
+        target: ContractAddress,
+    );
+    fn recover(ref self: TContractState);
 }
 
 #[starknet::interface]
 pub trait IVesu<TContractState> {
-    fn modify_position(ref self: TContractState, params: ModifyPositionParams) -> UpdatePositionResponse;
+    fn modify_position(
+        ref self: TContractState, params: ModifyPositionParams,
+    ) -> UpdatePositionResponse;
 }
+
 #[derive(PartialEq, Copy, Drop, Serde)]
 pub struct UpdatePositionResponse {
     pub collateral_delta: i257, // [asset scale]
