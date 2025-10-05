@@ -154,9 +154,9 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
                     aria-label="Toggle menu"
                 >
                     <div className="w-6 h-6 flex flex-col justify-center space-y-1">
-                        <span className={cn('block h-0.5 w-6 transition-all duration-300', isMenuOpen && 'rotate-45 translate-y-1.5')} />
-                        <span className={cn('block h-0.5 w-6 transition-all duration-300', isMenuOpen && 'opacity-0')} />
-                        <span className={cn('block h-0.5 w-6 transition-all duration-300', isMenuOpen && '-rotate-45 -translate-y-1.5')} />
+                        <span className={cn('block h-0.5 w-6 bg-black transition-all duration-300', isMenuOpen && 'rotate-45 translate-y-1.5')} />
+                        <span className={cn('block h-0.5 w-6 bg-black transition-all duration-300', isMenuOpen && 'opacity-0')} />
+                        <span className={cn('block h-0.5 w-6 bg-black transition-all duration-300', isMenuOpen && '-rotate-45 -translate-y-1.5')} />
                     </div>
                 </button>
             </div>
