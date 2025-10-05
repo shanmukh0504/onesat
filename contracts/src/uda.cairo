@@ -34,16 +34,14 @@ mod uda {
         user: ContractAddress,
         #[key]
         token: ContractAddress,
-        amount_low: u128,
-        amount_high: u128,
+        amount: u256,
     }
 
     #[derive(Drop, starknet::Event)]
     struct FundsRecovered {
         #[key]
         token: ContractAddress,
-        amount_low: u128,
-        amount_high: u128,
+        amount: u256,
         #[key]
         recipient: ContractAddress,
     }
@@ -98,7 +96,7 @@ mod uda {
 
             self
                 .emit(
-                    Initialized { user, token, amount_low: amount.low, amount_high: amount.high },
+                    Initialized { user, token, amount },
                 );
         }
 
@@ -117,8 +115,7 @@ mod uda {
                     .emit(
                         FundsRecovered {
                             token,
-                            amount_low: balance.low,
-                            amount_high: balance.high,
+                            amount: balance,
                             recipient: user,
                         },
                     );

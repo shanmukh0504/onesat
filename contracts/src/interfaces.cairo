@@ -1,5 +1,5 @@
 use alexandria_math::i257::i257;
-use starknet::{ClassHash, ContractAddress};
+use starknet::ContractAddress;
 
 #[starknet::interface]
 pub trait IRegistry<TContractState> {
