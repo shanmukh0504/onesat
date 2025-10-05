@@ -12,8 +12,8 @@ const config: Config = {
                 'mono': ['IBM Plex Mono', 'monospace'],
             },
             screens: {
-                xs: "360px",
-                sm: "600px",
+                xs: "500px",
+                sm: "640px",
                 md: "900px",
                 lg: "1200px",
                 xl: "1440px",
@@ -22,6 +22,7 @@ const config: Config = {
             colors: {
                 background: "var(--background)",
                 foreground: "var(--foreground)",
+                'my-grey': '#9FA493',
             },
         },
     },

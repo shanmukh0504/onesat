@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
+import AnimatedLink from '@/components/ui/AnimatedLink';
 import { cn } from '@/lib/utils';
 import { useWallet } from '@/store/useWallet';
 
@@ -54,12 +55,12 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
     };
 
     const leftNavigationItems = [
-        { label: 'earn', href: '/earn' },
-        { label: 'off-ramp', href: '/off-ramp' },
+        { label: 'Earn', href: '/earn' },
+        { label: 'Off-ramp', href: '/off-ramp' },
     ];
 
     const rightNavigationItems = [
-        { label: 'portfolio', href: '/portfolio' },
+        { label: 'Portfolio', href: '/portfolio' },
     ];
 
     const allNavigationItems = [...leftNavigationItems, ...rightNavigationItems];
@@ -81,26 +82,26 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
 
                     <div className="hidden md:flex items-center space-x-12">
                         {leftNavigationItems.map((item) => (
-                            <Link
+                            <AnimatedLink
                                 key={item.label}
                                 href={item.href}
-                                className="font-mono text-gray-700 hover:text-gray-900 transition-colors duration-200"
+                                variant="default"
                             >
                                 {item.label}
-                            </Link>
+                            </AnimatedLink>
                         ))}
                     </div>
                 </div>
 
                 <div className="hidden md:flex items-center space-x-12">
                     {rightNavigationItems.map((item) => (
-                        <Link
+                        <AnimatedLink
                             key={item.label}
                             href={item.href}
-                            className="font-mono text-gray-700 hover:text-gray-900 transition-colors duration-200"
+                            variant="default"
                         >
                             {item.label}
-                        </Link>
+                        </AnimatedLink>
                     ))}
                     <div className="flex items-center space-x-4" ref={menuRef}>
                         {!connected ? (
@@ -153,9 +154,9 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
                     aria-label="Toggle menu"
                 >
                     <div className="w-6 h-6 flex flex-col justify-center space-y-1">
-                        <span className={cn('block h-0.5 w-6 bg-gray-800 transition-all duration-300', isMenuOpen && 'rotate-45 translate-y-1.5')} />
-                        <span className={cn('block h-0.5 w-6 bg-gray-800 transition-all duration-300', isMenuOpen && 'opacity-0')} />
-                        <span className={cn('block h-0.5 w-6 bg-gray-800 transition-all duration-300', isMenuOpen && '-rotate-45 -translate-y-1.5')} />
+                        <span className={cn('block h-0.5 w-6 transition-all duration-300', isMenuOpen && 'rotate-45 translate-y-1.5')} />
+                        <span className={cn('block h-0.5 w-6 transition-all duration-300', isMenuOpen && 'opacity-0')} />
+                        <span className={cn('block h-0.5 w-6 transition-all duration-300', isMenuOpen && '-rotate-45 -translate-y-1.5')} />
                     </div>
                 </button>
             </div>
@@ -164,14 +165,15 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
                 <div className="md:hidden mt-4 py-4 border-t border-gray-200">
                     <div className="flex flex-col space-y-4">
                         {allNavigationItems.map((item) => (
-                            <Link
+                            <AnimatedLink
                                 key={item.label}
                                 href={item.href}
-                                className="font-mono text-gray-700 hover:text-gray-900 transition-colors duration-200 px-4"
+                                variant="mobile"
+                                className="px-4"
                                 onClick={() => setIsMenuOpen(false)}
                             >
                                 {item.label}
-                            </Link>
+                            </AnimatedLink>
                         ))}
                         <div className="px-4 space-y-2">
                             <Button variant="primary" className="w-full" onClick={onConnectWallet} disabled={isConnecting}>
