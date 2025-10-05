@@ -47,7 +47,7 @@ const Pagination: React.FC<PaginationProps> = ({
 
     return (
         <div className={cn('flex justify-center mt-6 xs:mt-8', className)}>
-            <div className="flex items-center space-x-1 xs:space-x-2">
+            <div className="flex items-center space-x-2">
                 <Card
                     onClick={() => onPageChange(currentPage - 1)}
                     disabled={currentPage === 1}
