@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: 'primary' | 'secondary' | 'outline' | 'danger';
+    variant?: 'primary' | 'secondary' | 'danger';
     size?: 'sm' | 'md' | 'lg';
     children: React.ReactNode;
 }
@@ -74,10 +74,9 @@ const Button: React.FC<ButtonProps> = ({
     const baseStyles = 'font-mono font-medium transition-all duration-200';
 
     const variants = {
-        primary: 'bg-gradient-to-br from-[#89CCBF] to-[#057C7C] hover:from-[#057C7C] hover:to-[#89CCBF] text-white',
+        primary: 'bg-gradient-to-br from-[#89CCBF] to-[#057C7C] text-white relative overflow-hidden',
         secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
-        outline: 'border-2 border-gray-300 text-gray-800 hover:bg-gray-50',
-        danger: 'bg-gradient-to-br from-[#FF6B6B] to-[#CC0000] hover:from-[#CC0000] hover:to-[#FF6B6B] text-white'
+        danger: 'bg-gradient-to-br from-[#FF6B6B] to-[#CC0000] text-white relative overflow-hidden'
     };
 
     const sizes = {
@@ -113,7 +112,11 @@ const Button: React.FC<ButtonProps> = ({
                     baseStyles,
                     variants[variant],
                     sizes[size],
-                    className
+                    className,
+                    (variant === 'primary' || variant === 'danger') && !isMobile && [
+                        'shimmer-effect',
+                        isHovered ? 'shimmer-forward' : 'shimmer-backward'
+                    ]
                 )}
                 style={{
                     transform: isPressed
