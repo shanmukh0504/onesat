@@ -15,7 +15,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className }) => {
                     </h1>
                     <p className="font-mono text-xs xs:text-sm sm:text-md xl:text-lg max-w-md text-center sm:text-right">
                         Put your native BTC to work in one click. Deposit directly (L1 or Lightning),
-                        and we'll handle bridging + yield automatically.
+                        and we&apos;ll handle bridging + yield automatically.
                     </p>
                 </div>
             </div>
