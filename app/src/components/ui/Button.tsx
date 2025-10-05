@@ -24,7 +24,7 @@ const Button: React.FC<ButtonProps> = ({
 
     React.useEffect(() => {
         const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768);
+            setIsMobile(window.innerWidth < 900);
         };
         checkMobile();
         window.addEventListener('resize', checkMobile);
@@ -71,7 +71,7 @@ const Button: React.FC<ButtonProps> = ({
         setIsPressed(false);
     };
 
-    const baseStyles = 'font-mono font-medium transition-all duration-200 active:translate-x-1 active:translate-y-1 active:shadow-none';
+    const baseStyles = 'font-mono font-medium transition-all duration-200';
 
     const variants = {
         primary: 'bg-gradient-to-br from-[#89CCBF] to-[#057C7C] text-white',
@@ -119,13 +119,17 @@ const Button: React.FC<ButtonProps> = ({
                         ? 'translate(4px, 4px)'
                         : isHovered && !isMobile
                             ? `translate(${mousePosition.x}px, ${mousePosition.y}px)`
-                            : 'translate(0px, 0px)',
+                            : isMobile
+                                ? 'translate(-4px, -4px)'
+                                : 'translate(0px, 0px)',
                     transition: isPressed || !isHovered || isMobile ? 'transform 0.2s ease-out' : 'none',
                     boxShadow: isPressed
                         ? 'none'
                         : isHovered && !isMobile
                             ? '4px 4px 0 0 #9ea393'
-                            : 'none',
+                            : isMobile
+                                ? '4px 4px 0 0 #9ea393'
+                                : 'none',
                     position: 'relative',
                     zIndex: 2
                 }}

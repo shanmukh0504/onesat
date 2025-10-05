@@ -12,15 +12,15 @@ interface StepCardProps {
 
 const StepCard: React.FC<StepCardProps> = ({ stepNumber, title, description, icon }) => {
     return (
-        <Card className="text-left space-y-11">
+        <Card className="text-left space-y-10">
             <div className="space-y-1">
-            <div className="text-sm font-mono text-gray-500">{stepNumber}</div>
-            <h3 className="font-mono font-medium text-xl text-gray-800">{title}</h3>
+            <div className="text-sm font-mono text-my-grey">{stepNumber}</div>
+            <h3 className="font-mono text-xl">{title}</h3>
             </div>
             <div className="w-16 h-16 flex items-center justify-center">
                 {icon}
             </div>
-            <p className="font-mono text-sm text-gray-700">{description}</p>
+            <p className="font-mono text-sm">{description}</p>
         </Card>
     );
 };
@@ -66,7 +66,7 @@ const HowItWorksSection: React.FC<HowItWorksSectionProps> = ({ className }) => {
     ];
 
     return (
-        <section className={cn('w-full px-4 sm:px-6 lg:px-8 py-12 md:py-20', className)}>
+        <section className={cn('w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12', className)}>
             <div className="max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                     {steps.map((step, index) => (
