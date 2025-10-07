@@ -37,6 +37,11 @@ async fn main() {
         coingecko_clone.start().await;
     });
 
-    let server = server::Server::new(settings.port, coingecko, settings.supported_assets);
+    let server = server::Server::new(
+        settings.port,
+        coingecko,
+        settings.supported_assets,
+        settings.vesu_api_base_url,
+    );
     server.run().await;
 }

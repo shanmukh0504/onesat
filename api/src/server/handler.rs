@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
-use axum::extract::State;
+use axum::extract::{Query, State};
 use reqwest::StatusCode;
+use serde::Deserialize;
+use serde_json::Value;
 
 use crate::{
     coingecko::CoingeckoFiatProvider,
@@ -11,6 +13,7 @@ use crate::{
 pub struct HandlerState {
     pub coingecko: Arc<CoingeckoFiatProvider>,
     pub supported_assets: Vec<Asset>,
+    pub vesu_api_base_url: String,
 }
 
 /// Health check endpoint that returns the service status
@@ -46,4 +49,36 @@ pub async fn supported_assets(State(state): State<Arc<HandlerState>>) -> ApiResu
         })
         .collect();
     Ok(Response::ok(supported_assets))
+}
+
+#[derive(Deserialize)]
+pub struct VesuPositionsQuery {
+    #[serde(rename = "walletAddress")]
+    pub wallet_address: String,
+}
+
+#[derive(Deserialize)]
+pub struct VesuPositionsResponse {
+    pub data: Value,
+}
+
+pub async fn vesu_positions(
+    Query(query): Query<VesuPositionsQuery>,
+    State(state): State<Arc<HandlerState>>,
+) -> ApiResult<Value> {
+    let url = format!("{}/positions", state.vesu_api_base_url);
+    let client = reqwest::Client::new();
+    let response = client
+        .get(url)
+        .query(&[("walletAddress", query.wallet_address)])
+        .send()
+        .await
+        .map_err(|e| Response::error(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+    let body = response
+        .text()
+        .await
+        .map_err(|e| Response::error(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+    let data: VesuPositionsResponse = serde_json::from_str(&body)
+        .map_err(|e| Response::error(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+    Ok(Response::ok(data.data))
 }

@@ -21,6 +21,8 @@ pub struct Settings {
     pub coingecko: CoingeckoSettings,
     // Supported assets
     pub supported_assets: Vec<Asset>,
+    // Vesu protocol API base URL
+    pub vesu_api_base_url: String,
 }
 
 impl Settings {
