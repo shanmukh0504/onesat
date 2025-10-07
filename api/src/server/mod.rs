@@ -7,7 +7,7 @@ use tracing::info;
 use crate::{
     coingecko::CoingeckoFiatProvider,
     primitives::Asset,
-    server::handler::{HandlerState, get_health, supported_assets, vesu_positions},
+    server::handler::{HandlerState, get_health, supported_assets, vesu_history, vesu_positions},
 };
 
 mod handler;
@@ -46,7 +46,9 @@ impl Server {
             .route("/assets", get(supported_assets))
             .nest(
                 "/vesu",
-                Router::new().route("/postions", get(vesu_positions)),
+                Router::new()
+                    .route("/postions", get(vesu_positions))
+                    .route("/history", get(vesu_history)),
             )
             .layer(cors)
             .with_state(Arc::clone(&self.handler_state));
