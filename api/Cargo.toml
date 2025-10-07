@@ -13,3 +13,7 @@ tracing = "0.1.41"
 tracing-subscriber = "0.3.20"
 tower = "0.5.2"
 tower-http = { version = "0.6.6", features = ["cors"] }
+eyre = "0.6.12"
+moka = { version = "0.12.11", features = ["future"] }
+reqwest = "0.12.23"
+bigdecimal = { version = "0.4.8", features = ["serde", "serde_json"] }

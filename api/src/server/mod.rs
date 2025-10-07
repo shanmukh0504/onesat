@@ -4,7 +4,11 @@ use axum::{Router, http::Method, routing::get};
 use tower_http::cors::{AllowHeaders, Any, CorsLayer};
 use tracing::info;
 
-use crate::server::handler::{HandlerState, get_health};
+use crate::{
+    coingecko::CoingeckoFiatProvider,
+    primitives::Asset,
+    server::handler::{HandlerState, get_health, supported_assets},
+};
 
 mod handler;
 
@@ -14,8 +18,15 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(port: u16) -> Self {
-        let handler_state = Arc::new(HandlerState {});
+    pub fn new(
+        port: u16,
+        coingecko: Arc<CoingeckoFiatProvider>,
+        supported_assets: Vec<Asset>,
+    ) -> Self {
+        let handler_state = Arc::new(HandlerState {
+            coingecko,
+            supported_assets,
+        });
         Self {
             port,
             handler_state,
@@ -30,6 +41,7 @@ impl Server {
 
         let app = Router::new()
             .route("/health", get(get_health))
+            .route("/assets", get(supported_assets))
             .layer(cors)
             .with_state(Arc::clone(&self.handler_state));
 
