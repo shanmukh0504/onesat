@@ -105,3 +105,32 @@ pub async fn vesu_history(
         .map_err(|e| Response::error(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
     Ok(Response::ok(data.data))
 }
+
+#[derive(Deserialize)]
+pub struct VesuPoolsQuery {
+    #[serde(rename = "poolAddress")]
+    pub pool_address: Option<String>,
+}
+
+pub async fn vesu_pools(
+    Query(query): Query<VesuPoolsQuery>,
+    State(state): State<Arc<HandlerState>>,
+) -> ApiResult<Value> {
+    let url = match query.pool_address {
+        Some(pool_address) => format!("{}/pools/{}", state.vesu_api_base_url, pool_address),
+        None => format!("{}/pools", state.vesu_api_base_url),
+    };
+    let client = reqwest::Client::new();
+    let response = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| Response::error(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+    let body = response
+        .text()
+        .await
+        .map_err(|e| Response::error(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+    let data: VesuPositionsResponse = serde_json::from_str(&body)
+        .map_err(|e| Response::error(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+    Ok(Response::ok(data.data))
+}
