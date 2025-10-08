@@ -14,3 +14,4 @@ openzeppelin_token = "0.20.0"
 
 [[target.starknet-contract]]
 sierra = true
+casm = true

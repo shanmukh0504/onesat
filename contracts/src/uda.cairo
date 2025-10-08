@@ -94,10 +94,7 @@ mod uda {
                 InternalImpl::deposit_vesu(@self, target, amount, token, user);
             }
 
-            self
-                .emit(
-                    Initialized { user, token, amount },
-                );
+            self.emit(Initialized { user, token, amount });
         }
 
         fn recover(ref self: ContractState) {
@@ -111,14 +108,7 @@ mod uda {
 
             if balance > 0 {
                 erc20.transfer(user, balance);
-                self
-                    .emit(
-                        FundsRecovered {
-                            token,
-                            amount: balance,
-                            recipient: user,
-                        },
-                    );
+                self.emit(FundsRecovered { token, amount: balance, recipient: user });
             }
         }
 
