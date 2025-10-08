@@ -8,12 +8,14 @@ use serde_json::Value;
 use crate::{
     coingecko::CoingeckoFiatProvider,
     primitives::{ApiResult, Asset, Response},
+    registry::VaultRegistry,
 };
 
 pub struct HandlerState {
     pub coingecko: Arc<CoingeckoFiatProvider>,
     pub supported_assets: Vec<Asset>,
     pub vesu_api_base_url: String,
+    pub vault_registry: Arc<VaultRegistry>,
 }
 
 /// Health check endpoint that returns the service status

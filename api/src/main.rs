@@ -1,11 +1,16 @@
 use std::sync::Arc;
 
 use reqwest::Url;
+use starknet::{
+    core::types::Felt,
+    providers::{JsonRpcClient, jsonrpc::HttpTransport},
+};
 
 use crate::settings::Settings;
 
 mod coingecko;
 mod primitives;
+mod registry;
 mod server;
 mod settings;
 
@@ -37,11 +42,21 @@ async fn main() {
         coingecko_clone.start().await;
     });
 
+    let provider: JsonRpcClient<HttpTransport> = JsonRpcClient::new(HttpTransport::new(
+        Url::parse(settings.rpc_url.as_str()).expect("Invalid RPC URL"),
+    ));
+
+    let vault_registry = registry::VaultRegistry::new(
+        Felt::from_hex_unchecked(settings.vault_registry_address.as_str()),
+        provider,
+    );
+
     let server = server::Server::new(
         settings.port,
         coingecko,
         settings.supported_assets,
         settings.vesu_api_base_url,
+        Arc::new(vault_registry),
     );
     server.run().await;
 }

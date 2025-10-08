@@ -7,6 +7,7 @@ use tracing::info;
 use crate::{
     coingecko::CoingeckoFiatProvider,
     primitives::Asset,
+    registry::VaultRegistry,
     server::handler::{
         HandlerState, get_health, supported_assets, vesu_history, vesu_pools, vesu_positions,
     },
@@ -25,11 +26,13 @@ impl Server {
         coingecko: Arc<CoingeckoFiatProvider>,
         supported_assets: Vec<Asset>,
         vesu_api_base_url: String,
+        vault_registry: Arc<VaultRegistry>,
     ) -> Self {
         let handler_state = Arc::new(HandlerState {
             coingecko,
             supported_assets,
             vesu_api_base_url,
+            vault_registry,
         });
         Self {
             port,
