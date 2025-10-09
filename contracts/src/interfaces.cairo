@@ -1,4 +1,3 @@
-use alexandria_math::i257::i257;
 use starknet::ContractAddress;
 
 #[starknet::interface]
@@ -45,42 +44,4 @@ pub trait IVault<TContractState> {
         target: ContractAddress,
     );
     fn recover(ref self: TContractState);
-}
-
-#[starknet::interface]
-pub trait IVesu<TContractState> {
-    fn modify_position(
-        ref self: TContractState, params: ModifyPositionParams,
-    ) -> UpdatePositionResponse;
-}
-
-#[derive(PartialEq, Copy, Drop, Serde)]
-pub struct UpdatePositionResponse {
-    pub collateral_delta: i257, // [asset scale]
-    pub collateral_shares_delta: i257, // [SCALE]
-    pub debt_delta: i257, // [asset scale]
-    pub nominal_debt_delta: i257, // [SCALE]
-    pub bad_debt: u256 // [asset scale]
-}
-
-#[derive(PartialEq, Copy, Drop, Serde)]
-pub struct ModifyPositionParams {
-    pub collateral_asset: ContractAddress,
-    pub debt_asset: ContractAddress,
-    pub user: ContractAddress,
-    pub collateral: Amount,
-    pub debt: Amount,
-}
-
-#[derive(PartialEq, Copy, Drop, Serde, Default)]
-pub struct Amount {
-    pub denomination: AmountDenomination,
-    pub value: i257,
-}
-
-#[derive(PartialEq, Copy, Drop, Serde, Default)]
-pub enum AmountDenomination {
-    #[default]
-    Native,
-    Assets,
 }

@@ -7,9 +7,8 @@ mod uda {
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
     use starknet::event::EventEmitter;
     use starknet::get_contract_address;
-    use crate::interfaces::{
-        Amount, AmountDenomination, IVesuDispatcher, IVesuDispatcherTrait, ModifyPositionParams,
-    };
+    use vesu::data_model::{Amount, AmountDenomination, ModifyPositionParams};
+    use vesu::pool::{IPoolDispatcher, IPoolDispatcherTrait};
     use super::{ContractAddress, StoragePointerReadAccess, StoragePointerWriteAccess};
 
     #[storage]
@@ -132,7 +131,7 @@ mod uda {
             token: ContractAddress,
             user: ContractAddress,
         ) {
-            let vesu = IVesuDispatcher { contract_address: target_address };
+            let pool = IPoolDispatcher { contract_address: target_address };
             let erc20 = IERC20Dispatcher { contract_address: token };
             erc20.approve(target_address, erc20.balance_of(get_contract_address()));
 
@@ -140,7 +139,7 @@ mod uda {
             let collateral_value: i257 = amount.try_into().expect('Amount conversion failed');
             let debt_value: i257 = 0_u256.try_into().expect('Zero conversion failed');
 
-            vesu
+            pool
                 .modify_position(
                     ModifyPositionParams {
                         collateral_asset: token,
