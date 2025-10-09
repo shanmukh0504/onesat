@@ -25,7 +25,7 @@ impl OrderbookProvider {
     /// Creates a new deposit record in the database
     ///
     /// # Arguments
-    /// * `deposit_id` - Unique 32-byte identifier for the deposit
+    /// * `deposit_id` - Unique deposit identifier as hex string
     /// * `user_address` - User's wallet address
     /// * `action` - Action type identifier
     /// * `amount` - Deposit amount
@@ -37,7 +37,7 @@ impl OrderbookProvider {
     /// The created deposit record
     pub async fn create_deposit(
         &self,
-        deposit_id: &[u8; 32],
+        deposit_id: &str,
         user_address: &str,
         action: u128,
         amount: &BigDecimal,
@@ -64,7 +64,7 @@ impl OrderbookProvider {
                 created_at
             "#,
         )
-        .bind(&deposit_id[..])
+        .bind(deposit_id)
         .bind(user_address)
         .bind(action as i64)
         .bind(amount)
@@ -86,13 +86,6 @@ impl OrderbookProvider {
     /// # Returns
     /// The deposit record if found, None otherwise
     pub async fn get_deposit(&self, deposit_id: &str) -> Result<Option<DepositResponse>> {
-        // Remove 0x prefix if present
-        let deposit_id_hex = deposit_id.strip_prefix("0x").unwrap_or(deposit_id);
-
-        // Decode hex string to bytes
-        let deposit_id_bytes = hex::decode(deposit_id_hex)
-            .map_err(|e| eyre::eyre!("Invalid deposit_id hex: {}", e))?;
-
         let deposit = sqlx::query_as::<_, DepositResponse>(
             r#"
             SELECT 
@@ -109,7 +102,7 @@ impl OrderbookProvider {
             WHERE deposit_id = $1
             "#,
         )
-        .bind(&deposit_id_bytes)
+        .bind(deposit_id)
         .fetch_optional(&self.pool)
         .await?;
 

@@ -160,12 +160,7 @@ pub struct CreateDepositRequest {
 #[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct DepositResponse {
     /// Unique deposit identifier (32 bytes as hex string)
-    #[sqlx(skip)]
     pub deposit_id: String,
-    /// Raw deposit_id bytes from database
-    #[serde(skip_serializing)]
-    #[sqlx(rename = "deposit_id")]
-    pub deposit_id_bytes: Vec<u8>,
     /// User's wallet address
     pub user_address: String,
     /// Action type identifier
@@ -193,12 +188,4 @@ where
     S: serde::Serializer,
 {
     serializer.serialize_str(&value.to_string())
-}
-
-impl DepositResponse {
-    /// Converts deposit_id_bytes to hex string for serialization
-    pub fn with_hex_deposit_id(mut self) -> Self {
-        self.deposit_id = format!("0x{}", hex::encode(&self.deposit_id_bytes));
-        self
-    }
 }
