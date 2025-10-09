@@ -120,7 +120,7 @@ pub struct Asset {
 
 /// Status of a deposit operation
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, sqlx::Type)]
-#[sqlx(type_name = "text")]
+#[sqlx(type_name = "text", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum DepositStatus {
     /// Initial state when deposit is created
@@ -172,6 +172,7 @@ pub struct DepositResponse {
     #[sqlx(try_from = "i64")]
     pub action: u128,
     /// Deposit amount
+    #[serde(serialize_with = "serialize_bigdecimal_as_string")]
     pub amount: BigDecimal,
     /// Token contract address
     pub token: String,
@@ -184,6 +185,14 @@ pub struct DepositResponse {
     /// Timestamp when deposit was created
     #[sqlx(rename = "created_at")]
     pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Custom serializer for BigDecimal to ensure it's serialized as a plain string
+fn serialize_bigdecimal_as_string<S>(value: &BigDecimal, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&value.to_string())
 }
 
 impl DepositResponse {

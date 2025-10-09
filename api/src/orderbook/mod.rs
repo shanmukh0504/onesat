@@ -2,7 +2,7 @@ use bigdecimal::BigDecimal;
 use eyre::Result;
 use sqlx::{Pool, Postgres};
 
-use crate::primitives::{DepositResponse, DepositStatus};
+use crate::primitives::DepositResponse;
 
 pub struct OrderbookProvider {
     pub pool: Pool<Postgres>,
@@ -53,7 +53,7 @@ impl OrderbookProvider {
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING 
-                deposit_id as deposit_id_bytes,
+                deposit_id,
                 user_address,
                 action,
                 amount,
@@ -71,7 +71,7 @@ impl OrderbookProvider {
         .bind(token)
         .bind(target_address)
         .bind(deposit_address)
-        .bind(DepositStatus::Created)
+        .bind("created")
         .fetch_one(&self.pool)
         .await?;
 
@@ -96,7 +96,7 @@ impl OrderbookProvider {
         let deposit = sqlx::query_as::<_, DepositResponse>(
             r#"
             SELECT 
-                deposit_id as deposit_id_bytes,
+                deposit_id,
                 user_address,
                 action,
                 amount,
