@@ -25,3 +25,7 @@ hex = "0.4.3"
 rand = "0.8.5"
 eyre = "0.6.12"
 tokio = { version = "1.47.1", features = ["full"] }
+async-trait = "0.1.89"
+thiserror = "2.0.17"
+starknet = "0.16.0"
+bigdecimal = { version = "0.4.8", features = ["serde", "serde_json"] }

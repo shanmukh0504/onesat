@@ -4,6 +4,10 @@ use std::{fs::File, io::BufReader};
 pub struct Settings {
     pub db_url: String,
     pub polling_interval: Option<u64>,
+    pub rpc_url: String,
+    pub vault_registry_address: String,
+    pub private_key: String,
+    pub account_address: String,
 }
 
 impl Settings {

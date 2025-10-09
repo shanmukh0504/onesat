@@ -28,7 +28,6 @@ impl std::fmt::Display for DepositStatus {
 #[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct DepositResponse {
     /// Unique deposit identifier (32 bytes as hex string)
-    #[sqlx(skip)]
     pub deposit_id: String,
     /// User's wallet address
     pub user_address: String,
