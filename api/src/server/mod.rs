@@ -1,15 +1,21 @@
 use std::{net::SocketAddr, sync::Arc};
 
-use axum::{Router, http::Method, routing::get};
+use axum::{
+    Router,
+    http::Method,
+    routing::{get, post},
+};
 use tower_http::cors::{AllowHeaders, Any, CorsLayer};
 use tracing::info;
 
 use crate::{
     coingecko::CoingeckoFiatProvider,
+    orderbook::OrderbookProvider,
     primitives::Asset,
     registry::VaultRegistry,
     server::handler::{
-        HandlerState, get_health, supported_assets, vesu_history, vesu_pools, vesu_positions,
+        HandlerState, create_deposit, get_deposit, get_health, supported_assets, vesu_history,
+        vesu_pools, vesu_positions,
     },
 };
 
@@ -27,12 +33,14 @@ impl Server {
         supported_assets: Vec<Asset>,
         vesu_api_base_url: String,
         vault_registry: Arc<VaultRegistry>,
+        orderbook: Arc<OrderbookProvider>,
     ) -> Self {
         let handler_state = Arc::new(HandlerState {
             coingecko,
             supported_assets,
             vesu_api_base_url,
             vault_registry,
+            orderbook,
         });
         Self {
             port,
@@ -42,13 +50,15 @@ impl Server {
 
     pub async fn run(&self) {
         let cors = CorsLayer::new()
-            .allow_methods(vec![Method::GET])
+            .allow_methods(vec![Method::GET, Method::POST])
             .allow_origin(Any)
             .allow_headers(AllowHeaders::any());
 
         let app = Router::new()
             .route("/health", get(get_health))
             .route("/assets", get(supported_assets))
+            .route("/deposit", post(create_deposit))
+            .route("/deposit/:deposit_id", get(get_deposit))
             .nest(
                 "/vesu",
                 Router::new()

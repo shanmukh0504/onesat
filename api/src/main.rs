@@ -6,9 +6,10 @@ use starknet::{
     providers::{JsonRpcClient, jsonrpc::HttpTransport},
 };
 
-use crate::settings::Settings;
+use crate::{orderbook::OrderbookProvider, settings::Settings};
 
 mod coingecko;
+mod orderbook;
 mod primitives;
 mod registry;
 mod server;
@@ -51,12 +52,17 @@ async fn main() {
         provider,
     );
 
+    let orderbook = OrderbookProvider::from_db_url(&settings.db_url)
+        .await
+        .expect("Failed to create orderbook provider");
+
     let server = server::Server::new(
         settings.port,
         coingecko,
         settings.supported_assets,
         settings.vesu_api_base_url,
         Arc::new(vault_registry),
+        Arc::new(orderbook),
     );
     server.run().await;
 }

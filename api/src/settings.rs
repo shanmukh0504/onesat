@@ -27,6 +27,8 @@ pub struct Settings {
     pub rpc_url: String,
     // Vault registry address
     pub vault_registry_address: String,
+    // Database URL
+    pub db_url: String,
 }
 
 impl Settings {

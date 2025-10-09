@@ -25,14 +25,6 @@ pub enum StarknetError {
     #[error("Contract call failed: {0}")]
     ContractCallFailed(String),
 
-    /// Error when a transaction fails to execute
-    #[error("Transaction execution failed: {0}")]
-    TransactionFailed(String),
-
-    /// Error when data cannot be properly formatted or parsed
-    #[error("Invalid data format: {0}")]
-    InvalidDataFormat(String),
-
     /// Error when the Starknet provider encounters an issue
     #[error("Provider error: {0}")]
     ProviderError(String),
@@ -82,14 +74,25 @@ impl VaultRegistry {
             .map_err(|e| StarknetError::ProviderError(e.to_string()))
     }
 
-    async fn predict_address(
+    /// Predicts the deposit address for a given set of parameters
+    ///
+    /// # Arguments
+    /// * `user` - The user's wallet address
+    /// * `action` - The action type identifier
+    /// * `amount` - The deposit amount
+    /// * `token` - The token contract address
+    /// * `target` - The target address for the deposit
+    ///
+    /// # Returns
+    /// The predicted deposit address as a Felt
+    pub async fn predict_address(
         &self,
         user: &Felt,
         action: u128,
         amount: &BigDecimal,
         token: &Felt,
         target: &Felt,
-    ) -> Result<Vec<Felt>, StarknetError> {
+    ) -> Result<Felt, StarknetError> {
         let (amount_low, amount_high) = bigdecimal_to_i128s(amount)?;
         let calldata = vec![
             user.clone(),
@@ -99,7 +102,12 @@ impl VaultRegistry {
             token.clone(),
             target.clone(),
         ];
-        self.call_contract("predict_address", calldata).await
+        let result = self.call_contract("predict_address", calldata).await?;
+
+        // The contract should return the predicted address as the first element
+        result.first().cloned().ok_or_else(|| {
+            StarknetError::InvalidResponse("Empty response from predict_address".to_string())
+        })
     }
 }
 

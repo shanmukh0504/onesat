@@ -19,3 +19,17 @@ reqwest = "0.12.23"
 bigdecimal = { version = "0.4.8", features = ["serde", "serde_json"] }
 starknet = "0.17.0"
 thiserror = "2.0.17"
+sqlx = { version = "0.8.0", features = [
+    "runtime-tokio",
+    "tls-native-tls",
+    "postgres",
+    "derive",
+    "macros",
+    "bigdecimal",
+    "chrono",
+    "json",
+    "migrate",
+] }
+chrono = { version = "0.4.38", features = ["serde"] }
+hex = "0.4.3"
+rand = "0.8.5"
