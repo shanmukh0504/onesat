@@ -92,7 +92,6 @@ mod registryContract {
                     self.emit(VaultDeployed { vault: deployed, user, token });
                     let vault = IVaultDispatcher { contract_address: deployed };
                     vault.initializer(user, action, amount, token, target);
-
                     deployed
                 },
                 Result::Err(_e) => {

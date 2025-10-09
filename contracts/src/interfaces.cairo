@@ -35,6 +35,12 @@ pub trait IVault<TContractState> {
         amount: u256,
         token: ContractAddress,
     );
+    fn approve(
+        ref self: TContractState,
+        token: ContractAddress,
+        amount: u256,
+        target_address: ContractAddress,
+    );
     fn initializer(
         ref self: TContractState,
         user: ContractAddress,
