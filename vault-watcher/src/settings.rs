@@ -1,26 +1,17 @@
-use config::{Config, ConfigError, File};
+use std::{fs::File, io::BufReader};
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub struct Settings {}
+pub struct Settings {
+    pub db_url: String,
+    pub polling_interval: Option<u64>,
+}
 
 impl Settings {
-    /// Loads settings from a TOML file.
+    /// Loads settings from a JSON file.
     /// Will panic if any required configuration variables are missing.
-    pub fn from_toml(path: &str) -> Self {
-        match Self::try_from_toml(path) {
-            Ok(settings) => settings,
-            Err(e) => {
-                eprintln!("Failed to load settings from {path}: {e}");
-                panic!("Missing required configuration variables in {path}");
-            }
-        }
-    }
-
-    /// Attempts to load settings from a TOML file, returning a Result.
-    fn try_from_toml(path: &str) -> Result<Self, ConfigError> {
-        let config = Config::builder()
-            .add_source(File::with_name(path))
-            .build()?;
-        config.try_deserialize()
+    pub fn from_json(file_path: &str) -> Self {
+        let file = File::open(file_path).expect("Failed to open JSON settings file");
+        let reader = BufReader::new(file);
+        serde_json::from_reader(reader).expect("Failed to parse JSON settings file")
     }
 }
