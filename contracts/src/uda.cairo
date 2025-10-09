@@ -3,6 +3,7 @@ use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
 
 #[starknet::contract]
 mod uda {
+    use alexandria_math::i257::i257;
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
     use starknet::event::EventEmitter;
     use starknet::get_contract_address;
@@ -135,6 +136,10 @@ mod uda {
             let erc20 = IERC20Dispatcher { contract_address: token };
             erc20.approve(target_address, erc20.balance_of(get_contract_address()));
 
+            // Convert u256 to i257
+            let collateral_value: i257 = amount.try_into().expect('Amount conversion failed');
+            let debt_value: i257 = 0_u256.try_into().expect('Zero conversion failed');
+
             vesu
                 .modify_position(
                     ModifyPositionParams {
@@ -142,9 +147,11 @@ mod uda {
                         debt_asset: token,
                         user: user,
                         collateral: Amount {
-                            denomination: AmountDenomination::Assets, value: amount.into(),
+                            denomination: AmountDenomination::Assets, value: collateral_value,
                         },
-                        debt: Amount { denomination: AmountDenomination::Assets, value: 0.into() },
+                        debt: Amount {
+                            denomination: AmountDenomination::Assets, value: debt_value,
+                        },
                     },
                 );
         }
