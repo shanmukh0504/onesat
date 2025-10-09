@@ -86,9 +86,9 @@ const Card: React.FC<CardProps> = ({ children, className, onClick, isActive = fa
             data-card-container
             className={cn(
                 'border-2 border-my-grey p-6 transition-all duration-300 ease-out',
-                isActive && 'shadow-[4px_4px_0_0_#9ea393] -translate-x-1 -translate-y-1',
-                !isActive && 'sm:hover:shadow-[4px_4px_0_0_#9ea393] sm:hover:-translate-x-1 sm:hover:-translate-y-1',
-                isMobile && isElevated && 'shadow-[4px_4px_0_0_#9ea393] -translate-x-1 -translate-y-1',
+                isActive && !disabled && 'shadow-[4px_4px_0_0_#9ea393] -translate-x-1 -translate-y-1',
+                !isActive && !disabled && 'sm:hover:shadow-[4px_4px_0_0_#9ea393] sm:hover:-translate-x-1 sm:hover:-translate-y-1',
+                isMobile && isElevated && !disabled && 'shadow-[4px_4px_0_0_#9ea393] -translate-x-1 -translate-y-1',
                 disabled && 'opacity-50 cursor-not-allowed',
                 !disabled && (isMobile || onClick) && 'cursor-pointer',
                 className
