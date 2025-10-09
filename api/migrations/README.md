@@ -55,7 +55,7 @@ sqlx migrate info --database-url "postgresql://user:password@localhost/dbname"
 Creates the `deposits` table for tracking user deposit operations.
 
 **Fields:**
-- `deposit_id` - Unique 32-byte identifier (BYTEA PRIMARY KEY)
+- `deposit_id` - Unique 32-byte identifier as hex string (TEXT PRIMARY KEY)
 - `user_address` - User's wallet address (TEXT)
 - `action` - Action type identifier (BIGINT)
 - `amount` - Deposit amount (NUMERIC)
