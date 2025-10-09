@@ -53,6 +53,7 @@ impl VaultWatcher {
             info!(deposits_count = deposits.len(), "Found deposits");
 
             if deposits.is_empty() {
+                tokio::time::sleep(Duration::from_secs(self.polling_interval)).await;
                 continue;
             }
 
