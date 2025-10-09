@@ -62,10 +62,7 @@ mod registryContract {
         ) -> ContractAddress {
             InternalImpl::_validate(user, amount, token, target);
             let salt = InternalImpl::_compute_salt(user, action, amount, token, target);
-            let calldata = InternalImpl::_build_constructor_calldata(
-                user, action, amount, token, target,
-            );
-            let calldata_hash = InternalImpl::_compute_constructor_hash(calldata.span());
+            let calldata_hash = InternalImpl::_compute_constructor_hash(array![].span());
             InternalImpl::_compute_address(salt, self.uda_class_hash.read(), calldata_hash)
         }
 
@@ -79,11 +76,8 @@ mod registryContract {
         ) -> ContractAddress {
             InternalImpl::_validate(user, amount, token, target);
             let salt = InternalImpl::_compute_salt(user, action, amount, token, target);
-            let calldata = InternalImpl::_build_constructor_calldata(
-                user, action, amount, token, target,
-            );
             let predicted = {
-                let calldata_hash = InternalImpl::_compute_constructor_hash(calldata.span());
+                let calldata_hash = InternalImpl::_compute_constructor_hash(array![].span());
                 InternalImpl::_compute_address(salt, self.uda_class_hash.read(), calldata_hash)
             };
 
@@ -91,7 +85,7 @@ mod registryContract {
             let balance = erc20.balance_of(predicted);
             assert(balance >= amount, Error::INSUFFICIENT_FUNDS);
 
-            match deploy_syscall(self.uda_class_hash.read(), salt, calldata.span(), false) {
+            match deploy_syscall(self.uda_class_hash.read(), salt, array![].span(), false) {
                 Result::Ok((
                     deployed, _,
                 )) => {

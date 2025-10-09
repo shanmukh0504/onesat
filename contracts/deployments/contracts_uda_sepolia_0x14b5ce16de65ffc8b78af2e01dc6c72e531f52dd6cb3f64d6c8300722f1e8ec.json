@@ -1,0 +1,8 @@
+{
+  "network": "sepolia",
+  "contractName": "contracts_uda",
+  "contractAddress": "0x14b5ce16de65ffc8b78af2e01dc6c72e531f52dd6cb3f64d6c8300722f1e8ec",
+  "constructorArgs": {},
+  "deploymentHash": "0x28f42081edfed707449ab34fd5d1b563b5c690962eeca2efd1a0d3820cf410e",
+  "timestamp": "2025-10-09T18:07:42.155Z"
+}
