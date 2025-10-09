@@ -204,8 +204,9 @@ pub async fn create_deposit(
 
     let deposit_address = format!("{:#x}", deposit_address_felt);
 
-    // Generate random 32-byte deposit ID
-    let deposit_id: [u8; 32] = rand::random();
+    // Generate random 32-byte deposit ID and encode as hex
+    let deposit_id_bytes: [u8; 32] = rand::random();
+    let deposit_id = hex::encode(deposit_id_bytes);
 
     // Insert into database
     let deposit = state
@@ -227,7 +228,7 @@ pub async fn create_deposit(
             )
         })?;
 
-    Ok(Response::ok(deposit.with_hex_deposit_id()))
+    Ok(Response::ok(deposit))
 }
 
 /// Retrieves a specific deposit by its ID
@@ -253,7 +254,7 @@ pub async fn get_deposit(
         })?;
 
     match deposit {
-        Some(deposit) => Ok(Response::ok(deposit.with_hex_deposit_id())),
+        Some(deposit) => Ok(Response::ok(deposit)),
         None => Err(Response::error("Deposit not found", StatusCode::NOT_FOUND)),
     }
 }
@@ -276,11 +277,5 @@ pub async fn get_created_deposits(
             )
         })?;
 
-    // Convert all deposit IDs to hex
-    let deposits_with_hex: Vec<DepositResponse> = deposits
-        .into_iter()
-        .map(|d| d.with_hex_deposit_id())
-        .collect();
-
-    Ok(Response::ok(deposits_with_hex))
+    Ok(Response::ok(deposits))
 }
