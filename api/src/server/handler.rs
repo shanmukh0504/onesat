@@ -257,3 +257,30 @@ pub async fn get_deposit(
         None => Err(Response::error("Deposit not found", StatusCode::NOT_FOUND)),
     }
 }
+
+/// Retrieves all deposits with "created" status
+///
+/// # Returns
+/// A list of all deposits that have status "created"
+pub async fn get_created_deposits(
+    State(state): State<Arc<HandlerState>>,
+) -> ApiResult<Vec<DepositResponse>> {
+    let deposits = state
+        .orderbook
+        .get_deposits_by_status("created")
+        .await
+        .map_err(|e| {
+            Response::error(
+                format!("Database error: {}", e),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )
+        })?;
+
+    // Convert all deposit IDs to hex
+    let deposits_with_hex: Vec<DepositResponse> = deposits
+        .into_iter()
+        .map(|d| d.with_hex_deposit_id())
+        .collect();
+
+    Ok(Response::ok(deposits_with_hex))
+}

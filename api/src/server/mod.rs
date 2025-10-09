@@ -14,8 +14,8 @@ use crate::{
     primitives::Asset,
     registry::VaultRegistry,
     server::handler::{
-        HandlerState, create_deposit, get_deposit, get_health, supported_assets, vesu_history,
-        vesu_pools, vesu_positions,
+        HandlerState, create_deposit, get_created_deposits, get_deposit, get_health,
+        supported_assets, vesu_history, vesu_pools, vesu_positions,
     },
 };
 
@@ -59,6 +59,7 @@ impl Server {
             .route("/assets", get(supported_assets))
             .route("/deposit", post(create_deposit))
             .route("/deposit/:deposit_id", get(get_deposit))
+            .route("/deposits/created", get(get_created_deposits))
             .nest(
                 "/vesu",
                 Router::new()

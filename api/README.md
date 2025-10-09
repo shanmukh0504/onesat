@@ -146,6 +146,48 @@ Retrieve details of a specific deposit by its ID.
 curl http://localhost:4433/deposit/0x1234567890abcdef...
 ```
 
+### Get Created Deposits
+
+Retrieve all deposits with "created" status.
+
+**Endpoint:** `GET /deposits/created`
+
+**Response:**
+```json
+{
+  "status": "Ok",
+  "result": [
+    {
+      "deposit_id": "0x1234567890abcdef...",
+      "user_address": "0x123...",
+      "action": 1,
+      "amount": "1000000000000000000",
+      "token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+      "target_address": "0x456...",
+      "deposit_address": "0x789...",
+      "status": "created",
+      "created_at": "2024-10-09T12:34:56Z"
+    },
+    {
+      "deposit_id": "0xabcdef1234567890...",
+      "user_address": "0x789...",
+      "action": 1,
+      "amount": "2000000000000000000",
+      "token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+      "target_address": "0xabc...",
+      "deposit_address": "0xdef...",
+      "status": "created",
+      "created_at": "2024-10-09T11:20:30Z"
+    }
+  ]
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:4433/deposits/created
+```
+
 ### Supported Assets
 
 Get a list of all supported assets with their current prices.
