@@ -18,7 +18,6 @@ impl OrderbookProvider {
             .max_connections(2000)
             .connect(db_url)
             .await?;
-        sqlx::migrate!("./migrations").run(&pool).await?;
         Ok(Self::new(pool))
     }
 
