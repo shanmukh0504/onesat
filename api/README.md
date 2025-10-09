@@ -46,6 +46,148 @@ Online
 curl http://localhost:4433/health
 ```
 
+### Create Deposit
+
+Create a new deposit and get the deposit address for tracking.
+
+**Endpoint:** `POST /deposit`
+
+**Request Body:**
+```json
+{
+  "user_address": "0x123...",
+  "action": 1,
+  "amount": "1000000000000000000",
+  "token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+  "target_address": "0x456..."
+}
+```
+
+**Parameters:**
+- `user_address` (required): User's wallet address (hex string)
+- `action` (required): Action type identifier (u128)
+- `amount` (required): Deposit amount as string (must be positive)
+- `token` (required): Token contract address (hex string)
+- `target_address` (required): Target address for the deposit (hex string)
+
+**Response:**
+```json
+{
+  "status": "Ok",
+  "result": {
+    "deposit_id": "0x1234567890abcdef...",
+    "user_address": "0x123...",
+    "action": 1,
+    "amount": "1000000000000000000",
+    "token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "target_address": "0x456...",
+    "deposit_address": "0x789...",
+    "status": "created",
+    "created_at": "2024-10-09T12:34:56Z"
+  }
+}
+```
+
+**Deposit Status:**
+- `created`: Initial state when deposit is created (default)
+- `initiated`: User has initiated the deposit transaction
+- `deposited`: Deposit has been confirmed on-chain (finalized)
+
+**Example:**
+```bash
+curl -X POST http://localhost:4433/deposit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_address": "0x123...",
+    "action": 1,
+    "amount": "1000000000000000000",
+    "token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "target_address": "0x456..."
+  }'
+```
+
+### Get Deposit
+
+Retrieve details of a specific deposit by its ID.
+
+**Endpoint:** `GET /deposit/:deposit_id`
+
+**Path Parameters:**
+- `deposit_id` (required): The 32-byte deposit ID as a hex string (with or without 0x prefix)
+
+**Response:**
+```json
+{
+  "status": "Ok",
+  "result": {
+    "deposit_id": "0x1234567890abcdef...",
+    "user_address": "0x123...",
+    "action": 1,
+    "amount": "1000000000000000000",
+    "token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    "target_address": "0x456...",
+    "deposit_address": "0x789...",
+    "status": "created",
+    "created_at": "2024-10-09T12:34:56Z"
+  }
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "status": "Error",
+  "error": "Deposit not found"
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:4433/deposit/0x1234567890abcdef...
+```
+
+### Get Created Deposits
+
+Retrieve all deposits with "created" status.
+
+**Endpoint:** `GET /deposits/created`
+
+**Response:**
+```json
+{
+  "status": "Ok",
+  "result": [
+    {
+      "deposit_id": "0x1234567890abcdef...",
+      "user_address": "0x123...",
+      "action": 1,
+      "amount": "1000000000000000000",
+      "token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+      "target_address": "0x456...",
+      "deposit_address": "0x789...",
+      "status": "created",
+      "created_at": "2024-10-09T12:34:56Z"
+    },
+    {
+      "deposit_id": "0xabcdef1234567890...",
+      "user_address": "0x789...",
+      "action": 1,
+      "amount": "2000000000000000000",
+      "token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+      "target_address": "0xabc...",
+      "deposit_address": "0xdef...",
+      "status": "created",
+      "created_at": "2024-10-09T11:20:30Z"
+    }
+  ]
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:4433/deposits/created
+```
+
 ### Supported Assets
 
 Get a list of all supported assets with their current prices.

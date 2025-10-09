@@ -23,6 +23,12 @@ pub struct Settings {
     pub supported_assets: Vec<Asset>,
     // Vesu protocol API base URL
     pub vesu_api_base_url: String,
+    // Starknet RPC URL
+    pub rpc_url: String,
+    // Vault registry address
+    pub vault_registry_address: String,
+    // Database URL
+    pub db_url: String,
 }
 
 impl Settings {

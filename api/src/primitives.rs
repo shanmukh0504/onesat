@@ -117,3 +117,88 @@ pub struct Asset {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub price: Option<BigDecimal>,
 }
+
+/// Status of a deposit operation
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "text", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum DepositStatus {
+    /// Initial state when deposit is created
+    Created,
+    /// User has initiated the deposit transaction
+    Initiated,
+    /// Deposit has been confirmed on-chain
+    Deposited,
+}
+
+impl std::fmt::Display for DepositStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DepositStatus::Created => write!(f, "created"),
+            DepositStatus::Initiated => write!(f, "initiated"),
+            DepositStatus::Deposited => write!(f, "deposited"),
+        }
+    }
+}
+
+/// Request to create a new deposit
+#[derive(Debug, Deserialize)]
+pub struct CreateDepositRequest {
+    /// User's wallet address (hex string)
+    pub user_address: String,
+    /// Action type identifier
+    pub action: u128,
+    /// Deposit amount
+    pub amount: BigDecimal,
+    /// Token contract address (hex string)
+    pub token: String,
+    /// Target address for the deposit (hex string)
+    pub target_address: String,
+}
+
+/// Response containing deposit details
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct DepositResponse {
+    /// Unique deposit identifier (32 bytes as hex string)
+    #[sqlx(skip)]
+    pub deposit_id: String,
+    /// Raw deposit_id bytes from database
+    #[serde(skip_serializing)]
+    #[sqlx(rename = "deposit_id")]
+    pub deposit_id_bytes: Vec<u8>,
+    /// User's wallet address
+    pub user_address: String,
+    /// Action type identifier
+    #[sqlx(try_from = "i64")]
+    pub action: u128,
+    /// Deposit amount
+    #[serde(serialize_with = "serialize_bigdecimal_as_string")]
+    pub amount: BigDecimal,
+    /// Token contract address
+    pub token: String,
+    /// Target address for the deposit
+    pub target_address: String,
+    /// Generated deposit address from registry
+    pub deposit_address: String,
+    /// Current status of the deposit
+    pub status: DepositStatus,
+    /// Timestamp when deposit was created
+    #[sqlx(rename = "created_at")]
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Custom serializer for BigDecimal to ensure it's serialized as a plain string
+fn serialize_bigdecimal_as_string<S>(value: &BigDecimal, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&value.to_string())
+}
+
+impl DepositResponse {
+    /// Converts deposit_id_bytes to hex string for serialization
+    pub fn with_hex_deposit_id(mut self) -> Self {
+        self.deposit_id = format!("0x{}", hex::encode(&self.deposit_id_bytes));
+        self
+    }
+}
