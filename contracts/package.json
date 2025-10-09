@@ -18,14 +18,18 @@
     "deploy": "ts-node scripts/deploy.ts",
     "deploy:sepolia": "ts-node scripts/deploy.ts sepolia",
     "deploy:mainnet": "ts-node scripts/deploy.ts mainnet",
-    "deploy:devnet": "ts-node scripts/deploy.ts devnet"
+    "deploy:devnet": "ts-node scripts/deploy.ts devnet",
+    "deploy:registry": "ts-node scripts/deploy.ts registry",
+    "deploy:registry:sepolia": "ts-node scripts/deploy.ts registry sepolia https://rpc.sepolia.starknet.io",
+    "deploy:registry:mainnet": "ts-node scripts/deploy.ts registry mainnet https://rpc.starknet.io",
+    "deploy:registry:devnet": "ts-node scripts/deploy.ts registry devnet http://localhost:5050"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.17",
     "dotenv": "^16.3.1",
     "jest": "^29.7.0",
-    "starknet": "^6.4.0",
+    "starknet": "^7.6.4",
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
