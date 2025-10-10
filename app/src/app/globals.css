@@ -11,3 +11,80 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Sidebar animations */
+@keyframes slideInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutRight {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* Shimmer animations */
+@keyframes shimmer-forward {
+  0% {
+    transform: translateX(-100%) rotate(-45deg);
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(100%) rotate(-45deg);
+    opacity: 0;
+  }
+}
+
+@keyframes shimmer-backward {
+  0% {
+    transform: translateX(100%) rotate(-45deg);
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(-100%) rotate(-45deg);
+    opacity: 0;
+  }
+}
+
+.shimmer-effect:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 168px;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5) 50%, transparent);
+  pointer-events: none;
+}
+
+.shimmer-forward:before {
+  animation: shimmer-forward 0.4s ease-out forwards;
+}
+
+.shimmer-backward:before {
+  animation: shimmer-backward 0.4s ease-out forwards;
+}

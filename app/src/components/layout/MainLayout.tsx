@@ -11,7 +11,7 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children, className }) => {
     return (
         <div className={cn('min-h-screen flex flex-col bg-[#F8F7F5]', className)}>
-            <Navbar className="relative z-10" />
+            <Navbar className="relative z-10 pb-8 md:pb-12" />
             <main className="flex-1 relative z-0">
                 {children}
             </main>

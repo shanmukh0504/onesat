@@ -1,5 +1,9 @@
+'use client';
+
 import React from 'react';
 import { cn } from '@/lib/utils';
+import HeroSection from '@/components/earn/HeroSection';
+import Pools from '@/components/earn/Pools';
 
 interface EarnPageProps {
     className?: string;
@@ -7,15 +11,9 @@ interface EarnPageProps {
 
 const EarnPage: React.FC<EarnPageProps> = ({ className }) => {
     return (
-        <div className={cn('min-h-screen flex items-center justify-center', className)}>
-            <div className="text-center">
-                <h1 className="font-mono text-4xl font-bold text-gray-800 mb-4">
-                    Earn Page
-                </h1>
-                <p className="font-mono text-lg text-gray-600">
-                    This page is coming soon...
-                </p>
-            </div>
+        <div className={cn('min-h-screen', className)}>
+            <HeroSection />
+            <Pools />
         </div>
     );
 };

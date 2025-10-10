@@ -1,0 +1,35 @@
+[package]
+name = "api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.7.5"
+config = "0.15.15"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.143"
+tokio = { version = "1.47.1", features = ["full"] }
+tracing = "0.1.41"
+tracing-subscriber = "0.3.20"
+tower = "0.5.2"
+tower-http = { version = "0.6.6", features = ["cors"] }
+eyre = "0.6.12"
+moka = { version = "0.12.11", features = ["future"] }
+reqwest = "0.12.23"
+bigdecimal = { version = "0.4.8", features = ["serde", "serde_json"] }
+starknet = "0.17.0"
+thiserror = "2.0.17"
+sqlx = { version = "0.8.0", features = [
+    "runtime-tokio",
+    "tls-native-tls",
+    "postgres",
+    "derive",
+    "macros",
+    "bigdecimal",
+    "chrono",
+    "json",
+    "migrate",
+] }
+chrono = { version = "0.4.38", features = ["serde"] }
+hex = "0.4.3"
+rand = "0.8.5"

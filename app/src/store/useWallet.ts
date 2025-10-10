@@ -66,10 +66,24 @@ async function fetchStacksBalanceUstx(address: string): Promise<NumericString | 
     }
 }
 
+interface StarknetProvider {
+    enable?: () => Promise<void>;
+    accounts?: string[];
+    selectedAddress?: string;
+}
+
+interface WindowWithProviders {
+    starknet?: StarknetProvider;
+    starknet_argentX?: StarknetProvider;
+    starknet_braavos?: StarknetProvider;
+    btc?: unknown;
+    BitcoinProvider?: unknown;
+}
+
 async function resolveStarknetInjectedAddress(): Promise<string | null> {
     try {
-        const anyWindow = window as any;
-        const provider = anyWindow?.starknet || anyWindow?.starknet_argentX || anyWindow?.starknet_braavos;
+        const windowWithProviders = window as Window & WindowWithProviders;
+        const provider = windowWithProviders?.starknet || windowWithProviders?.starknet_argentX || windowWithProviders?.starknet_braavos;
         if (!provider) return null;
         await provider.enable?.();
         const accounts = provider?.accounts;
@@ -97,9 +111,9 @@ export const useWallet = create<WalletState>()(
 
             detectProviders: () => {
                 if (typeof window === 'undefined') return;
-                const hasBitcoinProvider = Boolean((window as any).btc || (window as any).BitcoinProvider);
-                const hasUniSat = typeof (window as any).unisat !== 'undefined';
-                set({ isXverseAvailable: hasBitcoinProvider, isUniSatAvailable: hasUniSat });
+                const windowWithProviders = window as Window & WindowWithProviders;
+                const hasBitcoinProvider = Boolean(windowWithProviders.btc || windowWithProviders.BitcoinProvider);
+                set({ isXverseAvailable: hasBitcoinProvider });
             },
 
             setSelectedBtcWallet: (w) => set({ selectedBtcWallet: w }),
@@ -107,12 +121,12 @@ export const useWallet = create<WalletState>()(
             connect: async () => {
                 try {
                     set({ isConnecting: true });
-                    const { selectedBtcWallet } = get();
-                    if (selectedBtcWallet === 'unisat' && typeof (window as any).unisat !== 'undefined') {
-                        const unisat = (window as any).unisat;
-                        const addrs: string[] = await unisat.requestAccounts();
-                        const payment = Array.isArray(addrs) && addrs.length > 0 ? addrs[0] : null;
-                        const pub = await unisat.getPublicKey?.();
+                    const response = await defaultWallet.request('wallet_connect', null);
+                    if (response.status === 'success') {
+                        const addresses = response.result.addresses || [];
+                        const payment = addresses.find((a: { purpose: AddressPurpose; address: string }) => a.purpose === AddressPurpose.Payment)?.address || null;
+                        const ordinals = addresses.find((a: { purpose: AddressPurpose; address: string }) => a.purpose === AddressPurpose.Ordinals)?.address || null;
+                        const stacks = addresses.find((a: { purpose: AddressPurpose; address: string }) => a.purpose === AddressPurpose.Stacks)?.address || null;
                         const starknet = await resolveStarknetInjectedAddress();
                         set({
                             bitcoinPaymentAddress: payment,
@@ -152,8 +166,9 @@ export const useWallet = create<WalletState>()(
                             }
                         }
                     }
-                } catch (err: any) {
-                    const message = err?.error?.message || err?.message || 'Unexpected error while connecting wallet';
+                } catch (err: unknown) {
+                    const error = err as { error?: { message?: string }; message?: string };
+                    const message = error?.error?.message || error?.message || 'Unexpected error while connecting wallet';
                     alert(message);
                 } finally {
                     set({ isConnecting: false });
