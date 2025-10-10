@@ -52,4 +52,28 @@ impl OrderbookProvider {
 
         Ok(deposits)
     }
+
+    /// Updates the status of a deposit
+    ///
+    /// # Arguments
+    /// * `deposit_id` - The deposit ID to update
+    /// * `new_status` - The new status to set ("created", "initiated", or "deposited")
+    ///
+    /// # Returns
+    /// Result indicating success or failure
+    pub async fn update_deposit_status(&self, deposit_id: &str, new_status: &str) -> Result<()> {
+        sqlx::query(
+            r#"
+            UPDATE deposits
+            SET status = $1
+            WHERE deposit_id = $2
+            "#,
+        )
+        .bind(new_status)
+        .bind(deposit_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
 }

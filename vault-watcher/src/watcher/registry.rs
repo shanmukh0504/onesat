@@ -43,10 +43,7 @@ impl VaultRegistry {
             .gas_price_estimate_multiplier(3.0)
             .send()
             .await
-            .map_err(|e| {
-                dbg!(&e);
-                StarknetError::TransactionFailed(e.to_string())
-            })?;
+            .map_err(|e| StarknetError::TransactionFailed(e.to_string()))?;
         Ok(res)
     }
 
