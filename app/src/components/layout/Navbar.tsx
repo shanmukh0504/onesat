@@ -60,6 +60,7 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
 
     const rightNavigationItems = [
         { label: 'portfolio', href: '/portfolio' },
+         { label: 'swap', href: '/swap' },
     ];
 
     const allNavigationItems = [...leftNavigationItems, ...rightNavigationItems];
