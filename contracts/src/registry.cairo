@@ -54,13 +54,14 @@ mod registryContract {
         fn predict_address(
             self: @ContractState,
             user: ContractAddress,
+            deposit_id: felt252,
             action: u128,
             amount: u256,
             token: ContractAddress,
             target: ContractAddress,
         ) -> ContractAddress {
             InternalImpl::_validate(user, amount, token, target);
-            let salt = InternalImpl::_compute_salt(user, action, amount, token, target);
+            let salt = InternalImpl::_compute_salt(user, deposit_id, action, amount, token, target);
             let constructor_calldata = InternalImpl::_build_constructor_calldata(user, action, amount, token, target);
             let calldata_hash = InternalImpl::_compute_constructor_hash(constructor_calldata.span());
             InternalImpl::_compute_address(salt, self.uda_class_hash.read(), calldata_hash)
@@ -69,13 +70,14 @@ mod registryContract {
         fn deploy_vault(
             ref self: ContractState,
             user: ContractAddress,
+            deposit_id: felt252,
             action: u128,
             amount: u256,
             token: ContractAddress,
             target: ContractAddress,
         ) -> ContractAddress {
             InternalImpl::_validate(user, amount, token, target);
-            let salt = InternalImpl::_compute_salt(user, action, amount, token, target);
+            let salt = InternalImpl::_compute_salt(user, deposit_id, action, amount, token, target);
             let constructor_calldata = InternalImpl::_build_constructor_calldata(user, action, amount, token, target);
             let predicted = {
                 let calldata_hash = InternalImpl::_compute_constructor_hash(constructor_calldata.span());
@@ -115,6 +117,7 @@ mod registryContract {
 
         fn _compute_salt(
             user: ContractAddress,
+            deposit_id: felt252,
             action: u128,
             amount: u256,
             token: ContractAddress,
@@ -122,6 +125,7 @@ mod registryContract {
         ) -> felt252 {
             let mut h = PedersenTrait::new(0);
             h = h.update(user.into());
+            h = h.update(deposit_id);
             h = h.update(action.into());
             h = h.update(amount.low.into());
             h = h.update(amount.high.into());

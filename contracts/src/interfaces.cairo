@@ -5,6 +5,7 @@ pub trait IRegistry<TContractState> {
     fn predict_address(
         self: @TContractState,
         user: ContractAddress,
+        deposit_id: felt252,
         action: u128,
         amount: u256,
         token: ContractAddress,
@@ -14,6 +15,7 @@ pub trait IRegistry<TContractState> {
     fn deploy_vault(
         ref self: TContractState,
         user: ContractAddress,
+        deposit_id: felt252,
         action: u128,
         amount: u256,
         token: ContractAddress,

@@ -95,12 +95,13 @@ describe('Registry + UDA deterministic deploy (ERC20 pre-funding)', () => {
     // Inputs - use action=2 as mentioned
     const user = account.address;
     const target = cairo.felt('0x222');
+    const deposit_id = cairo.felt('0x1');
     const token = erc20Addr;
     const action = 2n;
     const amount = cairo.uint256(1000n);
 
     // Predict address
-    const predictedResult = await registry.predict_address(user, action, amount, token, target);
+    const predictedResult = await registry.predict_address(user, deposit_id, action, amount, token, target);
     const predicted = typeof predictedResult === 'string' && predictedResult.startsWith('0x') 
       ? predictedResult 
       : '0x' + BigInt(predictedResult.toString()).toString(16);
@@ -119,7 +120,7 @@ describe('Registry + UDA deterministic deploy (ERC20 pre-funding)', () => {
     expect(balanceValue).toBeGreaterThanOrEqual(amountValue);
 
     // Deploy vault
-    const deployTx = await registry.deploy_vault(user, action, amount, token, target);
+    const deployTx = await registry.deploy_vault(user, deposit_id, action, amount, token, target);
     await provider.waitForTransaction(deployTx.transaction_hash);
     console.log('Deployed vault at:', predicted);
 
