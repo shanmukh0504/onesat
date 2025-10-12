@@ -165,7 +165,7 @@ impl VaultWatcher {
         let user_address = Self::parse_address(&deposit.user_address, "user")?;
         let token_address = Self::parse_address(&deposit.token, "token")?;
         let target_address = Self::parse_address(&deposit.target_address, "target")?;
-
+        let deposit_id = Self::parse_address(&deposit.deposit_id, "deposit_id")?;
         info!(
             deposit_id = %deposit.deposit_id,
             user = %deposit.user_address,
@@ -176,6 +176,7 @@ impl VaultWatcher {
             .registry
             .deploy_vault(
                 &user_address,
+                &deposit_id,
                 DEFAULT_ACTION,
                 &deposit.amount,
                 &token_address,

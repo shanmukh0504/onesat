@@ -184,11 +184,23 @@ pub async fn create_deposit(
         ));
     }
 
+    // Generate random 32-byte deposit ID and encode as hex
+    let deposit_id_bytes: [u8; 32] = rand::random();
+    let deposit_id = hex::encode(deposit_id_bytes);
+
+    let deposit_id_felt = Felt::from_hex(&deposit_id).map_err(|e| {
+        Response::error(
+            format!("Invalid deposit_id: {}", e),
+            StatusCode::BAD_REQUEST,
+        )
+    })?;
+
     // Call registry contract to predict deposit address
     let deposit_address_felt = state
         .vault_registry
         .predict_address(
             &user_address,
+            &deposit_id_felt,
             request.action,
             &request.amount,
             &token,
@@ -203,10 +215,6 @@ pub async fn create_deposit(
         })?;
 
     let deposit_address = format!("{:#x}", deposit_address_felt);
-
-    // Generate random 32-byte deposit ID and encode as hex
-    let deposit_id_bytes: [u8; 32] = rand::random();
-    let deposit_id = hex::encode(deposit_id_bytes);
 
     // Insert into database
     let deposit = state
