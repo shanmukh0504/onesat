@@ -63,7 +63,7 @@ impl Server {
             .nest(
                 "/vesu",
                 Router::new()
-                    .route("/postions", get(vesu_positions))
+                    .route("/positions", get(vesu_positions))
                     .route("/history", get(vesu_history))
                     .route("/pools", get(vesu_pools)),
             )
