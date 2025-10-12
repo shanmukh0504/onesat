@@ -45,13 +45,33 @@ mod uda {
     }
 
     pub mod Error {
-        pub const ALREADY_INITIALIZED: felt252 = 'Already initialized';
         pub const NOT_INITIALIZED: felt252 = 'Not initialized';
     }
 
-    // Empty constructor
     #[constructor]
-    fn constructor(ref self: ContractState) {}
+    fn constructor(
+        ref self: ContractState,
+        user: ContractAddress,
+        action: u128,
+        amount: u256,
+        token: ContractAddress,
+        target: ContractAddress,
+    ) {
+        // Initialize storage
+        self.user.write(user);
+        self.action.write(action);
+        self.amount.write(amount);
+        self.token.write(token);
+        self.target.write(target);
+        self.is_initialized.write(true);
+
+        // Execute action based on action type
+        if action == 1 {
+            InternalImpl::deposit_vesu(@self, target, amount, token, user);
+        }
+
+        self.emit(Initialized { user, token, amount });
+    }
 
     #[abi(embed_v0)]
     impl VaultImpl of crate::interfaces::IVault<ContractState> {
@@ -71,29 +91,6 @@ mod uda {
             self.target.read()
         }
 
-        fn initializer(
-            ref self: ContractState,
-            user: ContractAddress,
-            action: u128,
-            amount: u256,
-            token: ContractAddress,
-            target: ContractAddress,
-        ) {
-            assert(!self.is_initialized.read(), Error::ALREADY_INITIALIZED);
-
-            self.user.write(user);
-            self.action.write(action);
-            self.amount.write(amount);
-            self.token.write(token);
-            self.target.write(target);
-            self.is_initialized.write(true);
-
-            if action == 1 {
-                InternalImpl::deposit_vesu(@self, target, amount, token, user);
-            }
-
-            self.emit(Initialized { user, token, amount });
-        }
 
         fn recover(ref self: ContractState) {
             assert(self.is_initialized.read(), Error::NOT_INITIALIZED);
@@ -150,3 +147,78 @@ mod uda {
         }
     }
 }
+
+
+
+#[cfg(test)]
+mod tests {
+    use core::array::ArrayTrait;
+    use core::hash::HashStateTrait;
+    use core::pedersen::PedersenTrait;
+    use core::poseidon::poseidon_hash_span;
+
+    // Test parameters
+    const TEST_NAME: felt252 = 'TEST_UDA';
+    const TEST_OWNER: felt252 = 123;
+    const TEST_CLASS_HASH: felt252 = 456;
+
+    // Constants needed for testing
+    const TEST_CONTRACT_ADDRESS_PREFIX: felt252 = 'STARKNET_CONTRACT_ADDRESS';
+
+    #[test]
+    fn test_salt_calculation() {
+        // Test that the salt calculation is deterministic
+        let salt1 = PedersenTrait::new(0).update(TEST_NAME).update(TEST_OWNER).finalize();
+        let salt2 = PedersenTrait::new(0).update(TEST_NAME).update(TEST_OWNER).finalize();
+
+        // Same inputs should produce same salt
+        assert(salt1 == salt2, 'this salt is bad');
+
+        // Different inputs should produce different salts
+        let salt3 = PedersenTrait::new(0).update(TEST_NAME).update(789).finalize();
+        assert(salt1 != salt3, 'salt same bro...');
+    }
+
+    #[test]
+    fn test_calldata_hash_calculation() {
+        // Test that the calldata hash calculation is deterministic
+        let mut calldata1: Array<felt252> = ArrayTrait::new();
+        calldata1.append(TEST_OWNER);
+
+        let mut calldata2: Array<felt252> = ArrayTrait::new();
+        calldata2.append(TEST_OWNER);
+
+        // Same calldata should produce same hash
+        let hash1 = poseidon_hash_span(calldata1.span());
+        let hash2 = poseidon_hash_span(calldata2.span());
+
+        assert(hash1 == hash2, 'hash wrong bro...');
+    }
+
+    #[test]
+    fn test_address_calculation_components() {
+        // Test individual components of the address calculation
+        let salt = PedersenTrait::new(0).update(TEST_NAME).update(TEST_OWNER).finalize();
+        let mut calldata: Array<felt252> = ArrayTrait::new();
+        calldata.append(TEST_OWNER);
+        let calldata_hash = poseidon_hash_span(calldata.span());
+
+        // Test that all components are non-zero
+        assert(salt != 0, 'Salt is zero');
+        assert(calldata_hash != 0, 'Calldata hash is zero');
+        assert(TEST_CLASS_HASH != 0, 'Class hash is zero');
+
+        // Test that the final address calculation produces a non-zero result
+        let deployer_address: felt252 = 123; // Test deployer address
+
+        let contract_address_hash = PedersenTrait::new(TEST_CONTRACT_ADDRESS_PREFIX)
+            .update(deployer_address)
+            .update(salt)
+            .update(TEST_CLASS_HASH)
+            .update(calldata_hash)
+            .finalize();
+
+        assert(contract_address_hash != 0, 'Final address hash is zero');
+    }
+}
+

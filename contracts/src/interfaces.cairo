@@ -41,13 +41,5 @@ pub trait IVault<TContractState> {
         amount: u256,
         target_address: ContractAddress,
     );
-    fn initializer(
-        ref self: TContractState,
-        user: ContractAddress,
-        action: u128,
-        amount: u256,
-        token: ContractAddress,
-        target: ContractAddress,
-    );
     fn recover(ref self: TContractState);
 }

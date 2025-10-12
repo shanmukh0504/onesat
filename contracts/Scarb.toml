@@ -13,6 +13,15 @@ alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria.g
 openzeppelin_token = "2.0.0"
 vesu = { git = "https://github.com/vesuxyz/vesu-v2.git" }
 
+[dev-dependencies]
+assert_macros = "2.11.4"
+
+[scripts]
+test = "snforge test"
+
+[tool.scarb]
+allow-prebuilt-plugins = ["snforge_std"]
+
 [[target.starknet-contract]]
 sierra = true
 casm = true

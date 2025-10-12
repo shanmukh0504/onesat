@@ -12,7 +12,6 @@ mod registryContract {
     use starknet::get_contract_address;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
     use starknet::syscalls::deploy_syscall;
-    use crate::interfaces::{IVaultDispatcher, IVaultDispatcherTrait};
     use super::{ArrayTrait, ClassHash, ContractAddress, Into, PedersenTrait};
 
     const CONTRACT_ADDRESS_PREFIX: felt252 = 'STARKNET_CONTRACT_ADDRESS';
@@ -62,7 +61,8 @@ mod registryContract {
         ) -> ContractAddress {
             InternalImpl::_validate(user, amount, token, target);
             let salt = InternalImpl::_compute_salt(user, action, amount, token, target);
-            let calldata_hash = InternalImpl::_compute_constructor_hash(array![].span());
+            let constructor_calldata = InternalImpl::_build_constructor_calldata(user, action, amount, token, target);
+            let calldata_hash = InternalImpl::_compute_constructor_hash(constructor_calldata.span());
             InternalImpl::_compute_address(salt, self.uda_class_hash.read(), calldata_hash)
         }
 
@@ -76,8 +76,9 @@ mod registryContract {
         ) -> ContractAddress {
             InternalImpl::_validate(user, amount, token, target);
             let salt = InternalImpl::_compute_salt(user, action, amount, token, target);
+            let constructor_calldata = InternalImpl::_build_constructor_calldata(user, action, amount, token, target);
             let predicted = {
-                let calldata_hash = InternalImpl::_compute_constructor_hash(array![].span());
+                let calldata_hash = InternalImpl::_compute_constructor_hash(constructor_calldata.span());
                 InternalImpl::_compute_address(salt, self.uda_class_hash.read(), calldata_hash)
             };
 
@@ -85,13 +86,11 @@ mod registryContract {
             let balance = erc20.balance_of(predicted);
             assert(balance >= amount, Error::INSUFFICIENT_FUNDS);
 
-            match deploy_syscall(self.uda_class_hash.read(), salt, array![].span(), false) {
+            match deploy_syscall(self.uda_class_hash.read(), salt, constructor_calldata.span(), false) {
                 Result::Ok((
                     deployed, _,
                 )) => {
                     self.emit(VaultDeployed { vault: deployed, user, token });
-                    let vault = IVaultDispatcher { contract_address: deployed };
-                    vault.initializer(user, action, amount, token, target);
                     deployed
                 },
                 Result::Err(_e) => {
@@ -149,11 +148,15 @@ mod registryContract {
         }
 
         fn _compute_constructor_hash(data: Span<felt252>) -> felt252 {
-            let mut h = PedersenTrait::new(0);
-            for v in data {
-                h = h.update(*v);
+            if data.len() == 0 {
+                PedersenTrait::new(0).update(0).update(0).finalize()
+            } else {
+                let mut h = PedersenTrait::new(0);
+                for v in data {
+                    h = h.update(*v);
+                }
+                h.update(data.len().into()).finalize()
             }
-            h.update(data.len().into()).finalize()
         }
 
         fn _compute_address(
@@ -165,6 +168,7 @@ mod registryContract {
                 .update(salt)
                 .update(class_hash.into())
                 .update(calldata_hash)
+                .update(5)
                 .finalize();
             addr.try_into().unwrap()
         }
