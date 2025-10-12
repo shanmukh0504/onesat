@@ -1,0 +1,10 @@
+{
+  "network": "sepolia",
+  "contractName": "contracts_registryContract",
+  "contractAddress": "0x5e74299c59159632bfe9784f4d47729f7eb82c38216e4f10002a65ef813e1bf",
+  "constructorArgs": {
+    "class_hash": "0x034682b999c4e93116a457a7ca2f0148be679b020be3936f869792f518bc835c"
+  },
+  "deploymentHash": "0x426955ba480b45c84c1d8413f0d466e93470a3b0d0d63dbead20fbd48237306",
+  "timestamp": "2025-10-09T19:27:13.018Z"
+}

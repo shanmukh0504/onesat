@@ -88,6 +88,7 @@ impl VaultRegistry {
     pub async fn predict_address(
         &self,
         user: &Felt,
+        deposit_id: &Felt,
         action: u128,
         amount: &BigDecimal,
         token: &Felt,
@@ -96,6 +97,7 @@ impl VaultRegistry {
         let (amount_low, amount_high) = bigdecimal_to_i128s(amount)?;
         let calldata = vec![
             user.clone(),
+            deposit_id.clone(),
             Felt::from(action),
             Felt::from(amount_low),
             Felt::from(amount_high),
