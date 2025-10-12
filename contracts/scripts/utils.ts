@@ -9,9 +9,11 @@ export interface CompiledCode {
 export interface DeploymentInfo {
   network: string;
   contractName: string;
-  contractAddress: string;
-  constructorArgs: Record<string, any>;
-  deploymentHash: string;
+  contractAddress?: string;
+  constructorArgs?: Record<string, any>;
+  deploymentHash?: string;
+  classHash?: string;
+  declarationHash?: string;
   timestamp: string;
 }
 
@@ -56,7 +58,9 @@ export async function writeDeploymentInfo(
 ): Promise<void> {
   await fs.mkdir("./deployments", { recursive: true });
 
-  const deploymentPath = `./deployments/${contract}_${network}_${deployInfo.contractAddress}.json`;
+  // Use contractAddress for deployments, classHash for declarations
+  const identifier = deployInfo.contractAddress || deployInfo.classHash;
+  const deploymentPath = `./deployments/${contract}_${network}_${identifier}.json`;
   try {
     await fs.access(deploymentPath);
     console.log("Deployment file already exists");

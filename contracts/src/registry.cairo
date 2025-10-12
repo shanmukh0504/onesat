@@ -61,8 +61,12 @@ mod registryContract {
         ) -> ContractAddress {
             InternalImpl::_validate(user, amount, token, target);
             let salt = InternalImpl::_compute_salt(user, action, amount, token, target);
-            let constructor_calldata = InternalImpl::_build_constructor_calldata(user, action, amount, token, target);
-            let calldata_hash = InternalImpl::_compute_constructor_hash(constructor_calldata.span());
+            let constructor_calldata = InternalImpl::_build_constructor_calldata(
+                user, action, amount, token, target,
+            );
+            let calldata_hash = InternalImpl::_compute_constructor_hash(
+                constructor_calldata.span(),
+            );
             InternalImpl::_compute_address(salt, self.uda_class_hash.read(), calldata_hash)
         }
 
@@ -76,9 +80,13 @@ mod registryContract {
         ) -> ContractAddress {
             InternalImpl::_validate(user, amount, token, target);
             let salt = InternalImpl::_compute_salt(user, action, amount, token, target);
-            let constructor_calldata = InternalImpl::_build_constructor_calldata(user, action, amount, token, target);
+            let constructor_calldata = InternalImpl::_build_constructor_calldata(
+                user, action, amount, token, target,
+            );
             let predicted = {
-                let calldata_hash = InternalImpl::_compute_constructor_hash(constructor_calldata.span());
+                let calldata_hash = InternalImpl::_compute_constructor_hash(
+                    constructor_calldata.span(),
+                );
                 InternalImpl::_compute_address(salt, self.uda_class_hash.read(), calldata_hash)
             };
 
@@ -86,7 +94,9 @@ mod registryContract {
             let balance = erc20.balance_of(predicted);
             assert(balance >= amount, Error::INSUFFICIENT_FUNDS);
 
-            match deploy_syscall(self.uda_class_hash.read(), salt, constructor_calldata.span(), false) {
+            match deploy_syscall(
+                self.uda_class_hash.read(), salt, constructor_calldata.span(), false,
+            ) {
                 Result::Ok((
                     deployed, _,
                 )) => {
