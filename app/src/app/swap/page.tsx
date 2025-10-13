@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { useWallet } from '@/store/useWallet';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import {
@@ -14,34 +13,28 @@ import {
     StarknetInitializer,
     StarknetInitializerType,
 } from '@atomiqlabs/chain-starknet';
-import {request} from 'sats-connect';
 import Navbar from '@/components/layout/Navbar';
+import { ChainDataContext } from '../context/ChainDataContext';
 
 const factory = new SwapperFactory<[StarknetInitializerType]>([StarknetInitializer]);
 const Tokens = factory.Tokens;
 
 export default function SwapPage() {
-    const { connected, bitcoinPaymentAddress, bitcoinPublicKeyHex, starknetAddress, selectedBtcWallet, setSelectedBtcWallet, isUniSatAvailable, isXverseAvailable } = useWallet();
-    const [starknetRpcUrl, setStarknetRpcUrl] = useState<string>('https://starknet-sepolia.public.blastapi.io/rpc/v0_8');
-    const [starknetNetworkName, setStarknetNetworkName] = useState<'SEPOLIA' | 'MAINNET'>('SEPOLIA');
-    const [xverseNetwork, setXverseNetwork] = useState<string | null>(null);
+    const chainData = useContext(ChainDataContext);
+    const bitcoinChainData = chainData.BITCOIN;
+    const starknetChainData = chainData.STARKNET;
 
+    const [starknetRpcUrl] = useState<string>('https://starknet-sepolia.public.blastapi.io/rpc/v0_7');
     const [amountBtc, setAmountBtc] = useState<string>('0.00003');
     const [dstToken, setDstToken] = useState<'ETH' | 'STRK'>('ETH');
     const [isInitializing, setIsInitializing] = useState<boolean>(false);
     const [isSwapping, setIsSwapping] = useState<boolean>(false);
     const [logs, setLogs] = useState<string[]>([]);
 
-    const btcNetwork = useMemo(() => {
-        // Prefer wallet-reported network; fallback to address prefix
-        if (xverseNetwork) {
-            const n = xverseNetwork.toLowerCase();
-            if (n === 'mainnet') return BitcoinNetwork.MAINNET;
-            if (n === 'testnet' || n === 'signet' || n === 'test') return BitcoinNetwork.TESTNET4;
-        }
-        if (!bitcoinPaymentAddress) return BitcoinNetwork.MAINNET;
-        return bitcoinPaymentAddress.startsWith('tb1') ? BitcoinNetwork.TESTNET4 : BitcoinNetwork.MAINNET;
-    }, [bitcoinPaymentAddress, xverseNetwork]);
+    const btcNetwork = BitcoinNetwork.TESTNET4;
+    const bitcoinAddress = bitcoinChainData?.wallet?.address;
+    const starknetAddress = starknetChainData?.wallet?.address;
+    const connected = Boolean(bitcoinAddress && starknetAddress);
 
     const swapper = useMemo(() => {
         const rpc = new RpcProviderWithRetries({ nodeUrl: starknetRpcUrl });
@@ -51,81 +44,18 @@ export default function SwapPage() {
         });
     }, [btcNetwork, starknetRpcUrl]);
 
-    const log = (line: string) => setLogs((l) => [...l, line]);
-
-    const b64ToHex = (b64: string) => {
-        const bin = atob(b64);
-        let hex = '';
-        for (let i = 0; i < bin.length; i++) hex += bin.charCodeAt(i).toString(16).padStart(2, '0');
-        return hex;
-    };
-    const hexToB64 = (hex: string) => {
-        const bytes = new Uint8Array(hex.length / 2);
-        for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
-        let bin = '';
-        for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-        return btoa(bin);
-    };
-
-    const signWithUniSat = async (psbtB64: string): Promise<string> => {
-        const unisat: any = (window as any).unisat;
-        const psbtHex = b64ToHex(psbtB64);
-        // Try common signature: signPsbt(psbtHex, options)
-        try {
-            const res: any = await unisat.signPsbt(psbtHex, { autoFinalized: false });
-            if (typeof res === 'string') return res; // hex
-            if (res?.psbtHex) return res.psbtHex;
-            if (res?.psbt) return b64ToHex(res.psbt);
-        } catch (e) {
-            // Fallback signature: signPsbt({ psbtHex, autoFinalized })
-            const res2: any = await unisat.signPsbt({ psbtHex, autoFinalized: false });
-            if (typeof res2 === 'string') return res2;
-            if (res2?.psbtHex) return res2.psbtHex;
-            if (res2?.psbt) return b64ToHex(res2.psbt);
-            throw e;
-        }
-        throw new Error('UniSat did not return a signed PSBT');
+    const log = (line: string) => {
+        console.log(line);
+        setLogs((l) => [...l, line]);
     };
 
     useEffect(() => {
         let cancelled = false;
         (async () => {
-            // Detect Starknet network from injected wallet if present
-            try {
-                const anyWindow = window as any;
-                const sn = anyWindow?.starknet || anyWindow?.starknet_argentX || anyWindow?.starknet_braavos;
-                const chainId = await sn?.provider?.getChainId?.();
-                if (btcNetwork === BitcoinNetwork.MAINNET) {
-                    if (typeof chainId === 'string') {
-                        // SN_MAIN: 0x534e5f4d41494e, SN_SEPOLIA: 0x534e5f5354504c49
-                        if (chainId.toLowerCase() === '0x534e5f4d41494e'.toLowerCase()) {
-                            setStarknetRpcUrl('https://starknet-mainnet.public.blastapi.io/rpc/v0_8');
-                            setStarknetNetworkName('MAINNET');
-                        } else if (chainId.toLowerCase() === '0x534e5f5354504c49'.toLowerCase()) {
-                            setStarknetRpcUrl('https://starknet-sepolia.public.blastapi.io/rpc/v0_8');
-                            setStarknetNetworkName('SEPOLIA');
-                        }
-                    }
-                } else {
-                    // For BTC testnet, force Starknet Sepolia regardless of injected network
-                    setStarknetRpcUrl('https://starknet-sepolia.public.blastapi.io/rpc/v0_8');
-                    setStarknetNetworkName('SEPOLIA');
-                }
-            } catch {
-                // fallback stays on default sepolia
-            }
-
-            try {
-                const res: any = await request('wallet_getNetwork', null as any);
-                if (res?.status === 'success') {
-                    const n = (res.result?.type || res.result?.network || '').toString().toLowerCase();
-                    setXverseNetwork(n);
-                }
-            } catch {}
             setIsInitializing(true);
             try {
                 await swapper.init();
-                if (!cancelled) log('Swapper initialized (BTC: ' + (btcNetwork === BitcoinNetwork.MAINNET ? 'MAINNET' : 'TESTNET') + ', Starknet: ' + starknetNetworkName + (xverseNetwork ? ', Xverse: ' + xverseNetwork : '') + ')');
+                if (!cancelled) log('Swapper initialized (BTC: TESTNET4, Starknet: SEPOLIA)');
             } catch (e: any) {
                 if (!cancelled) log('Failed to initialize: ' + (e?.message || String(e)));
             } finally {
@@ -136,31 +66,29 @@ export default function SwapPage() {
             cancelled = true;
             void swapper.stop();
         };
-    }, [swapper, btcNetwork, starknetNetworkName]);
+    }, [swapper]);
 
     const handleSwap = async () => {
-        if (!connected || !bitcoinPaymentAddress || !starknetAddress) {
-            alert('Please connect wallet with BTC and Starknet addresses first.');
+        if (!connected || !bitcoinAddress || !starknetAddress) {
+            alert('Please connect both Bitcoin and Starknet wallets first.');
             return;
         }
-        // Block if Xverse network and swapper network disagree
-        if (xverseNetwork) {
-            const n = xverseNetwork.toLowerCase();
-            if (n === 'mainnet' && btcNetwork !== BitcoinNetwork.MAINNET) {
-                alert('Network mismatch: Xverse is on mainnet but swapper is using testnet. Switch Xverse to testnet or connect a mainnet BTC address.');
-                return;
-            }
-            if ((n === 'testnet' || n === 'signet' || n === 'test') && btcNetwork !== BitcoinNetwork.TESTNET4) {
-                alert('Network mismatch: Xverse is on testnet but swapper is using mainnet. Switch Xverse to mainnet or connect a testnet BTC address.');
-                return;
-            }
+
+        if (!bitcoinChainData?.wallet?.instance) {
+            alert('Bitcoin wallet instance not available');
+            return;
         }
+
         try {
             setIsSwapping(true);
+            log('Starting swap...');
+            
             const amountInSats = BigInt(Math.floor(Number(amountBtc) * 1e8));
+            log(`Amount: ${amountBtc} BTC (${amountInSats.toString()} sats)`);
 
             const token = dstToken === 'ETH' ? Tokens.STARKNET.ETH : Tokens.STARKNET.STRK;
 
+            log('Creating swap...');
             const swap = await swapper.swap(
                 Tokens.BITCOIN.BTC,
                 token,
@@ -171,66 +99,33 @@ export default function SwapPage() {
                 {}
             );
 
-            log('Swap created ' + swap.getId());
-            log('Input (no fee): ' + swap.getInputWithoutFee().toString());
-            log('Fees: ' + swap.getFee().amountInSrcToken.toString());
-            for (let fee of swap.getFeeBreakdown()) {
-                log(' - ' + FeeType[fee.type] + ': ' + fee.fee.amountInSrcToken.toString());
+            log('Swap created: ' + swap.getId());
+            log('Input (no fee): ' + swap.getInputWithoutFee().toString() + ' sats');
+            log('Fees: ' + swap.getFee().amountInSrcToken.toString() + ' sats');
+            for (const fee of swap.getFeeBreakdown()) {
+                log(' - ' + FeeType[fee.type] + ': ' + fee.fee.amountInSrcToken.toString() + ' sats');
             }
             log('Output: ' + swap.getOutput().toString());
 
-            // In a browser, we request a PSBT to be signed by the connected BTC wallet.
-            const funded = await swap.getFundedPsbt({ address: bitcoinPaymentAddress!, publicKey: bitcoinPublicKeyHex! });
-            const toB64 = (psbtAny: any) => {
-                if (!psbtAny) return '';
-                if (typeof psbtAny === 'string') return psbtAny;
-                if (typeof psbtAny.toBase64 === 'function') return psbtAny.toBase64();
-                return psbtAny.base64 || psbtAny.psbt || '';
-            };
-            const psbtToSignBase64 = toB64(funded.psbt);
-            
-            let signedPsbtBase64: string | null = null;
-            if (selectedBtcWallet === 'unisat' && typeof (window as any).unisat !== 'undefined') {
-                log('Requesting UniSat to sign PSBT...');
-                const psbtHexSigned = await signWithUniSat(psbtToSignBase64);
-                signedPsbtBase64 = hexToB64(psbtHexSigned);
-            } else {
-                log('Requesting Xverse to sign PSBT...');
-                const signRes = await request('signPsbt', {
-                    psbt: psbtToSignBase64,
-                    broadcast: false,
-                    signInputs: {
-                        [bitcoinPaymentAddress!]: funded.signInputs,
-                    },
-                });
-                if (signRes.status !== 'success') {
-                    throw new Error(signRes.error?.message || 'Wallet refused to sign PSBT');
-                }
-                signedPsbtBase64 =
-                    (signRes as any).result?.psbt ||
-                    (signRes as any).result?.signedPsbt ||
-                    (signRes as any).result?.psbtBase64 ||
-                    '';
-            }
-
-            if (!signedPsbtBase64) throw new Error('Signed PSBT not returned');
-
-            log('Submitting signed PSBT...');
-            const txId = await (swap as any).submitPsbt(signedPsbtBase64 as any);
+            // Send Bitcoin transaction using the wallet adapter
+            log('Requesting wallet to sign and broadcast transaction...');
+            const txId = await swap.sendBitcoinTransaction(bitcoinChainData.wallet.instance);
             log('Bitcoin transaction sent: ' + txId);
 
+            log('Waiting for Bitcoin transaction confirmation...');
             await swap.waitForBitcoinTransaction(undefined, 1, () => {});
-            log('Bitcoin transaction confirmed. Waiting for claim...');
+            log('Bitcoin transaction confirmed!');
+
+            log('Waiting for claim...');
             try {
-                await swap.waitTillClaimedOrFronted(AbortSignal.timeout(30 * 1000));
-                log('Successfully claimed by watchtower!');
-            } catch (e) {
-                log('Auto-claim not detected, attempting manual claim...');
-                // Manual claim requires a Starknet signer; for injected wallets, we would call provider.signer
-                // For now we rely on watchtower claim path; extend with signer if needed.
+                await swap.waitTillClaimedOrFronted(AbortSignal.timeout(60 * 1000));
+                log('✅ Successfully claimed by watchtower!');
+            } catch {
+                log('⏳ Auto-claim not detected yet, watchtower will process it soon.');
             }
         } catch (e: any) {
-            log('Swap failed: ' + (e?.message || String(e)));
+            console.error('Swap error:', e);
+            log('❌ Swap failed: ' + (e?.message || String(e)));
         } finally {
             setIsSwapping(false);
         }
@@ -239,34 +134,97 @@ export default function SwapPage() {
     return (
         <>
             <Navbar />
-        <div className="max-w-3xl mx-auto px-4 py-10">
-            <h1 className="text-2xl font-mono mb-6">Swap</h1>
-            {xverseNetwork && (
-                <div className="mb-4 text-xs font-mono p-3 border rounded-md">
-                    <div>Xverse network: {xverseNetwork}</div>
-                    <div>BTC network used: {btcNetwork === BitcoinNetwork.MAINNET ? 'mainnet' : 'testnet4'}</div>
-                    <div>Starknet network: {starknetNetworkName.toLowerCase()}</div>
+            <div className="max-w-3xl mx-auto px-4 py-10">
+                <h1 className="text-2xl font-mono mb-6">Swap BTC to Starknet</h1>
+                
+                {/* Network Info */}
+                <div className="mb-4 text-xs font-mono p-3 border rounded-md bg-gray-50  ">
+                    <div className="font-semibold mb-2">Network Configuration:</div>
+                    <div>• Bitcoin: Testnet4</div>
+                    <div>• Starknet: Sepolia</div>
                 </div>
-            )}
-            <div className="grid grid-cols-1 gap-6">
-                <div className="rounded-md border border-gray-200 p-4">
+
+                {/* Connection Status */}
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 border rounded-md">
+                        <div className="text-sm font-mono mb-2">Bitcoin Wallet</div>
+                        {bitcoinChainData?.wallet ? (
+                            <>
+                                <div className="text-xs text-gray-600   mb-2">
+                                    {bitcoinChainData.wallet.name}
+                                </div>
+                                <div className="text-xs font-mono break-all bg-gray-100   p-2 rounded">
+                                    {bitcoinAddress}
+                                </div>
+                                {bitcoinChainData.disconnect && (
+                                    <button
+                                        onClick={() => bitcoinChainData.disconnect?.()}
+                                        className="mt-2 text-xs text-red-600 hover:text-red-700"
+                                    >
+                                        Disconnect
+                                    </button>
+                                )}
+                            </>
+                        ) : (
+                            <Button
+                                onClick={() => bitcoinChainData?.connect?.()}
+                                disabled={!bitcoinChainData?.connect}
+                                className="w-full"
+                            >
+                                Connect Bitcoin
+                            </Button>
+                        )}
+                    </div>
+
+                    <div className="p-4 border rounded-md">
+                        <div className="text-sm font-mono mb-2">Starknet Wallet</div>
+                        {starknetChainData?.wallet ? (
+                            <>
+                                <div className="text-xs text-gray-600   mb-2">
+                                    {starknetChainData.wallet.name}
+                                </div>
+                                <div className="text-xs font-mono break-all bg-gray-100   p-2 rounded">
+                                    {starknetAddress}
+                                </div>
+                                {starknetChainData.disconnect && (
+                                    <button
+                                        onClick={() => starknetChainData.disconnect?.()}
+                                        className="mt-2 text-xs text-red-600 hover:text-red-700"
+                                    >
+                                        Disconnect
+                                    </button>
+                                )}
+                            </>
+                        ) : (
+                            <Button
+                                onClick={() => starknetChainData?.connect?.()}
+                                disabled={!starknetChainData?.connect}
+                                className="w-full"
+                            >
+                                Connect Starknet
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Swap Form */}
+                <div className="rounded-md border border-gray-200 p-4 mb-6">
+                    <h2 className="text-lg font-mono mb-4">Swap Configuration</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-mono text-gray-700 mb-1">BTC Wallet</label>
-                            <select className="w-full border rounded-md px-3 py-2 font-mono" value={selectedBtcWallet}
-                                onChange={(e) => setSelectedBtcWallet(e.target.value as 'xverse' | 'unisat')}
-                            >
-                                <option value="xverse" disabled={!isXverseAvailable}>Xverse</option>
-                                <option value="unisat" disabled={!isUniSatAvailable}>UniSat</option>
-                            </select>
+                            <label className="block text-sm font-mono text-gray-700 dark:text-gray-300 mb-1">
+                                From
+                            </label>
+                            <div className="font-mono p-2 border rounded bg-gray-50  ">
+                                Bitcoin (BTC)
+                            </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-mono text-gray-700 mb-1">From</label>
-                            <div className="font-mono">Bitcoin (BTC)</div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-mono text-gray-700 mb-1">To</label>
-                            <select className="w-full border rounded-md px-3 py-2 font-mono"
+                            <label className="block text-sm font-mono text-gray-700 dark:text-gray-300 mb-1">
+                                To
+                            </label>
+                            <select
+                                className="w-full border rounded-md px-3 py-2 font-mono bg-white  "
                                 value={dstToken}
                                 onChange={(e) => setDstToken(e.target.value as 'ETH' | 'STRK')}
                             >
@@ -274,56 +232,56 @@ export default function SwapPage() {
                                 <option value="STRK">Starknet STRK</option>
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-sm font-mono text-gray-700 mb-1">Amount (BTC)</label>
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-mono text-gray-700 dark:text-gray-300 mb-1">
+                                Amount (BTC)
+                            </label>
                             <input
                                 type="number"
-                                className="w-full border rounded-md px-3 py-2 font-mono"
+                                className="w-full border rounded-md px-3 py-2 font-mono bg-white  "
                                 value={amountBtc}
                                 onChange={(e) => setAmountBtc(e.target.value)}
                                 min="0"
                                 step="0.00000001"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-mono text-gray-700 mb-1">Destination</label>
-                            <input
-                                className="w-full border rounded-md px-3 py-2 font-mono"
-                                value={starknetAddress || ''}
-                                readOnly
-                                placeholder="Connect wallet to populate"
+                                placeholder="0.00003"
                             />
                         </div>
                     </div>
                     <div className="mt-4 flex items-center justify-between">
-                        <div className="text-xs font-mono text-gray-600">
-                            {connected ? 'Wallet connected' : 'Wallet not connected'}
+                        <div className="text-xs font-mono text-gray-600  ">
+                            {connected ? '✓ Wallets connected' : '⚠ Connect wallets to swap'}
                         </div>
-                        <Button onClick={handleSwap} disabled={!connected || isInitializing || isSwapping}>
-                            {isSwapping ? 'Swapping…' : 'Swap'}
+                        <Button
+                            onClick={handleSwap}
+                            disabled={!connected || isInitializing || isSwapping}
+                        >
+                            {isSwapping ? 'Swapping…' : isInitializing ? 'Initializing…' : 'Swap'}
                         </Button>
                     </div>
                 </div>
 
+                {/* Logs */}
                 <div className="rounded-md border border-gray-200 p-4">
-                    <div className="text-sm font-mono mb-2">Logs</div>
-                    <div className={cn('text-xs font-mono space-y-1 max-h-80 overflow-auto')}
+                    <div className="text-sm font-mono mb-2">Transaction Logs</div>
+                    <div
+                        className={cn(
+                            'text-xs font-mono space-y-1 max-h-80 overflow-auto',
+                            'bg-gray-50   p-3 rounded'
+                        )}
                         aria-live="polite"
                     >
                         {logs.length === 0 ? (
-                            <div className="text-gray-500">No logs yet.</div>
+                            <div className="text-gray-500">No logs yet. Start a swap to see transaction details.</div>
                         ) : (
                             logs.map((l, i) => (
-                                <div key={i}>{l}</div>
+                                <div key={i} className="leading-relaxed">
+                                    {l}
+                                </div>
                             ))
                         )}
                     </div>
                 </div>
             </div>
-        </div>
         </>
-
     );
 }
-
-
