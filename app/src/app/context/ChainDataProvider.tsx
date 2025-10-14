@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { ChainDataContext, ChainWalletData } from './ChainDataContext';
+import { ChainDataContext } from './ChainDataContext';
 import { XverseBitcoinWallet } from '@/lib/bitcoin/XverseBitcoinWallet';
 import { UnisatBitcoinWallet } from '@/lib/bitcoin/UnisatBitcoinWallet';
 import { BitcoinNetwork } from '@atomiqlabs/sdk';
@@ -11,7 +11,7 @@ import { WalletAccount, wallet } from 'starknet';
 
 const BITCOIN_NETWORK = BitcoinNetwork.TESTNET4;
 const BITCOIN_RPC_URL = 'https://mempool.space/testnet4/api';
-const STARKNET_RPC_URL = 'https://starknet-sepolia.public.blastapi.io/rpc/v0_7';
+const STARKNET_RPC_URL = 'https://starknet-sepolia.public.blastapi.io/rpc/v0_8';
 const STARKNET_CHAIN_ID = '0x534e5f5345504f4c4941'; // SN_SEPOLIA
 
 export function ChainDataProvider({ children }: { children: React.ReactNode }) {
@@ -32,7 +32,9 @@ export function ChainDataProvider({ children }: { children: React.ReactNode }) {
         
         // Check for Bitcoin wallets
         const checkWallets = () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const hasXverse = Boolean((window as any).BitcoinProvider);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const hasUnisat = Boolean((window as any).unisat);
             
             setIsXverseAvailable(hasXverse);
@@ -144,6 +146,7 @@ export function ChainDataProvider({ children }: { children: React.ReactNode }) {
 
     // Prepare context value
     const contextValue = useMemo(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const value: any = {};
 
         // Bitcoin chain data
@@ -160,8 +163,8 @@ export function ChainDataProvider({ children }: { children: React.ReactNode }) {
             } : null,
             id: 'BITCOIN',
             connect: isXverseAvailable || isUnisatAvailable ? async () => {
-                // Default to Xverse if available, otherwise Unisat
-                const walletType = isXverseAvailable ? 'xverse' : 'unisat';
+                // Default to UniSat if available, otherwise Xverse
+                const walletType = isUnisatAvailable ? 'unisat' : 'xverse';
                 await connectBitcoinWallet(walletType);
             } : undefined,
             disconnect: bitcoinWallet ? disconnectBitcoinWallet : undefined,

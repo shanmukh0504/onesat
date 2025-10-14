@@ -1,13 +1,15 @@
 import { BitcoinWalletBase } from "./BitcoinWalletBase";
 import { BitcoinNetwork, CoinselectAddressTypes } from "@atomiqlabs/sdk";
-import { BTC_NETWORK, Address as AddressParser } from "@scure/btc-signer";
+import {  Address as AddressParser } from "@scure/btc-signer";
 import { Transaction } from "@scure/btc-signer";
+import { BTC_NETWORK } from "@scure/btc-signer/utils";
 
 interface UnisatProvider {
     requestAccounts(): Promise<string[]>;
     getAccounts(): Promise<string[]>;
     getPublicKey(): Promise<string>;
     getBalance(): Promise<{ confirmed: number; unconfirmed: number; total: number }>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     signPsbt(psbtHex: string, options?: any): Promise<string>;
     pushPsbt(psbtHex: string): Promise<string>;
     getNetwork(): Promise<string>;
@@ -37,7 +39,7 @@ export class UnisatBitcoinWallet extends BitcoinWalletBase {
     readonly bitcoinNetwork: BitcoinNetwork;
     private provider: UnisatProvider;
 
-    private constructor(
+    private     constructor(
         address: string,
         pubkey: string,
         provider: UnisatProvider,
@@ -50,7 +52,14 @@ export class UnisatBitcoinWallet extends BitcoinWalletBase {
         this.provider = provider;
         this.bitcoinNetwork = bitcoinNetwork;
         this.addressType = identifyAddressType(address, this.network);
+        
+        // Add SDK compatibility methods directly to the instance
+        // (this as any).publicKey = pubkey;
+        (this as any).getAccounts = () => this.toBitcoinWalletAccounts();
+        console.log('UniSat wallet constructor - added publicKey:', pubkey);
+        console.log('UniSat wallet constructor - added getAccounts method');
     }
+    
 
     static async connect(bitcoinNetwork: BitcoinNetwork, rpcUrl: string): Promise<UnisatBitcoinWallet> {
         if (typeof window === 'undefined' || !window.unisat) {
@@ -142,7 +151,7 @@ export class UnisatBitcoinWallet extends BitcoinWalletBase {
         }
     }
 
-    async signPsbt(psbt: Transaction, signInputs: number[]): Promise<Transaction> {
+    async signPsbt(psbt: Transaction, _signInputs: number[]): Promise<Transaction> {
         try {
             const psbtHex = Buffer.from(psbt.toPSBT(0)).toString("hex");
             
@@ -155,6 +164,14 @@ export class UnisatBitcoinWallet extends BitcoinWalletBase {
             console.error("Failed to sign PSBT:", error);
             throw error;
         }
+    }
+
+    getFundedPsbtFee(inputPsbt: Transaction, feeRate?: number): Promise<number> {
+        return Promise.resolve(0);
+    }
+
+    getSpendableBalance(psbt?: Transaction, feeRate?: number): Promise<{ balance: bigint; feeRate: number; totalFee: number; }> {
+        return super._getSpendableBalance(this.toBitcoinWalletAccounts(), psbt, feeRate);
     }
 }
 

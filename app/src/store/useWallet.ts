@@ -101,7 +101,7 @@ export const useWallet = create<WalletState>()(
             isUniSatAvailable: false,
             isConnecting: false,
             connected: false,
-            selectedBtcWallet: 'xverse',
+            selectedBtcWallet: 'unisat',
             bitcoinPaymentAddress: null,
             bitcoinOrdinalsAddress: null,
             stacksAddress: null,
@@ -111,9 +111,10 @@ export const useWallet = create<WalletState>()(
 
             detectProviders: () => {
                 if (typeof window === 'undefined') return;
-                const windowWithProviders = window as Window & WindowWithProviders;
-                const hasBitcoinProvider = Boolean(windowWithProviders.btc || windowWithProviders.BitcoinProvider);
-                set({ isXverseAvailable: hasBitcoinProvider });
+                const windowWithProviders = window as Window & WindowWithProviders & { unisat?: unknown };
+                const hasXverse = Boolean(windowWithProviders.btc || windowWithProviders.BitcoinProvider);
+                const hasUnisat = Boolean((window as unknown as { unisat?: unknown }).unisat);
+                set({ isXverseAvailable: hasXverse, isUniSatAvailable: hasUnisat });
             },
 
             setSelectedBtcWallet: (w) => set({ selectedBtcWallet: w }),
@@ -124,16 +125,16 @@ export const useWallet = create<WalletState>()(
                     const response = await defaultWallet.request('wallet_connect', null);
                     if (response.status === 'success') {
                         const addresses = response.result.addresses || [];
-                        const payment = addresses.find((a: { purpose: AddressPurpose; address: string }) => a.purpose === AddressPurpose.Payment)?.address || null;
-                        const ordinals = addresses.find((a: { purpose: AddressPurpose; address: string }) => a.purpose === AddressPurpose.Ordinals)?.address || null;
-                        const stacks = addresses.find((a: { purpose: AddressPurpose; address: string }) => a.purpose === AddressPurpose.Stacks)?.address || null;
+                        const paymentItem = addresses.find((a: { purpose: AddressPurpose; address: string; publicKey?: string }) => a.purpose === AddressPurpose.Payment);
+                        const payment = paymentItem?.address || null;
+                        const pubkey = paymentItem?.publicKey || null;
                         const starknet = await resolveStarknetInjectedAddress();
                         set({
                             bitcoinPaymentAddress: payment,
                             bitcoinOrdinalsAddress: null,
                             stacksAddress: null,
                             starknetAddress: starknet,
-                            bitcoinPublicKeyHex: typeof pub === 'string' ? pub : null,
+                            bitcoinPublicKeyHex: typeof pubkey === 'string' ? pubkey : null,
                             connected: Boolean(payment),
                         });
                         await get().refreshBalances();
@@ -141,11 +142,11 @@ export const useWallet = create<WalletState>()(
                         const response = await defaultWallet.request('wallet_connect', null);
                         if (response.status === 'success') {
                             const addresses = response.result.addresses || [];
-                            const paymentItem = addresses.find((a: any) => a.purpose === AddressPurpose.Payment);
+                            const paymentItem = addresses.find((a: { purpose: AddressPurpose; address: string; publicKey?: string }) => a.purpose === AddressPurpose.Payment);
                             const payment = paymentItem?.address || null;
                             const pubkey = paymentItem?.publicKey || null;
-                            const ordinals = addresses.find((a: any) => a.purpose === AddressPurpose.Ordinals)?.address || null;
-                            const stacks = addresses.find((a: any) => a.purpose === AddressPurpose.Stacks)?.address || null;
+                            const ordinals = addresses.find((a: { purpose: AddressPurpose; address: string }) => a.purpose === AddressPurpose.Ordinals)?.address || null;
+                            const stacks = addresses.find((a: { purpose: AddressPurpose; address: string }) => a.purpose === AddressPurpose.Stacks)?.address || null;
                             const starknet = await resolveStarknetInjectedAddress();
 
                             set({
