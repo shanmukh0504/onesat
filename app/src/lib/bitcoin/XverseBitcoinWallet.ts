@@ -39,8 +39,9 @@ export class XverseBitcoinWallet extends BitcoinWalletBase {
         this.addressType = identifyAddressType(account.address, this.network);
         
         // Add SDK compatibility methods directly to the instance
-        (this as any).publicKey = account.publicKey;
+        // Do NOT assign to publicKey; base class exposes read-only shape
         (this as any).getAccounts = () => this.toBitcoinWalletAccounts();
+        console.log('Xverse wallet constructor - added getAccounts method');
     }
 
     static async connect(bitcoinNetwork: BitcoinNetwork, rpcUrl: string): Promise<XverseBitcoinWallet> {

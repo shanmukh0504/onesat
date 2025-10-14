@@ -163,8 +163,8 @@ export function ChainDataProvider({ children }: { children: React.ReactNode }) {
             } : null,
             id: 'BITCOIN',
             connect: isXverseAvailable || isUnisatAvailable ? async () => {
-                // Default to UniSat if available, otherwise Xverse
-                const walletType = isUnisatAvailable ? 'unisat' : 'xverse';
+                // Default to Xverse if available, otherwise UniSat
+                const walletType = isXverseAvailable ? 'xverse' : 'unisat';
                 await connectBitcoinWallet(walletType);
             } : undefined,
             disconnect: bitcoinWallet ? disconnectBitcoinWallet : undefined,

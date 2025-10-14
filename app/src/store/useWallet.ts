@@ -101,7 +101,7 @@ export const useWallet = create<WalletState>()(
             isUniSatAvailable: false,
             isConnecting: false,
             connected: false,
-            selectedBtcWallet: 'unisat',
+            selectedBtcWallet: 'xverse',
             bitcoinPaymentAddress: null,
             bitcoinOrdinalsAddress: null,
             stacksAddress: null,
