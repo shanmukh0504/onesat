@@ -83,7 +83,9 @@ Create a new deposit and get the deposit address for tracking.
     "target_address": "0x456...",
     "deposit_address": "0x789...",
     "status": "created",
-    "created_at": "2024-10-09T12:34:56Z"
+    "created_at": "2024-10-09T12:34:56Z",
+    "deposit_tx_hash": null,
+    "atomiq_swap_id": null
   }
 }
 ```
@@ -128,7 +130,9 @@ Retrieve details of a specific deposit by its ID.
     "target_address": "0x456...",
     "deposit_address": "0x789...",
     "status": "created",
-    "created_at": "2024-10-09T12:34:56Z"
+    "created_at": "2024-10-09T12:34:56Z",
+    "deposit_tx_hash": null,
+    "atomiq_swap_id": null
   }
 }
 ```
@@ -166,7 +170,9 @@ Retrieve all deposits with "created" status.
       "target_address": "0x456...",
       "deposit_address": "0x789...",
       "status": "created",
-      "created_at": "2024-10-09T12:34:56Z"
+      "created_at": "2024-10-09T12:34:56Z",
+      "deposit_tx_hash": null,
+      "atomiq_swap_id": null
     },
     {
       "deposit_id": "0xabcdef1234567890...",
@@ -177,7 +183,9 @@ Retrieve all deposits with "created" status.
       "target_address": "0xabc...",
       "deposit_address": "0xdef...",
       "status": "created",
-      "created_at": "2024-10-09T11:20:30Z"
+      "created_at": "2024-10-09T11:20:30Z",
+      "deposit_tx_hash": null,
+      "atomiq_swap_id": null
     }
   ]
 }
@@ -186,6 +194,86 @@ Retrieve all deposits with "created" status.
 **Example:**
 ```bash
 curl http://localhost:4433/deposits/created
+```
+
+### Get User Deposits
+
+Retrieve all deposits for a specific user address.
+
+**Endpoint:** `GET /deposits/user/:user_address`
+
+**Path Parameters:**
+- `user_address` (required): The user's wallet address (hex string)
+
+**Response:**
+```json
+{
+  "status": "Ok",
+  "result": [
+    {
+      "deposit_id": "0x1234567890abcdef...",
+      "user_address": "0x123...",
+      "action": 1,
+      "amount": "1000000000000000000",
+      "token": "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+      "target_address": "0x456...",
+      "deposit_address": "0x789...",
+      "status": "deposited",
+      "created_at": "2024-10-09T12:34:56Z",
+      "deposit_tx_hash": "0xabcdef1234567890...",
+      "atomiq_swap_id": "swap_12345"
+    }
+  ]
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:4433/deposits/user/0x123...
+```
+
+### Update Atomiq Swap ID
+
+Update the atomiq swap ID for a specific deposit.
+
+**Endpoint:** `POST /deposit/:deposit_id/atomiq-swap-id`
+
+**Path Parameters:**
+- `deposit_id` (required): The 32-byte deposit ID as a hex string (with or without 0x prefix)
+
+**Request Body:**
+```json
+{
+  "atomiq_swap_id": "swap_12345"
+}
+```
+
+**Parameters:**
+- `atomiq_swap_id` (required): The atomiq swap ID to associate with the deposit
+
+**Response:**
+```json
+{
+  "status": "Ok",
+  "result": null
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "status": "Error",
+  "error": "Deposit not found"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:4433/deposit/0x1234567890abcdef.../atomiq-swap-id \
+  -H "Content-Type: application/json" \
+  -d '{
+    "atomiq_swap_id": "swap_12345"
+  }'
 ```
 
 ### Get Supported Assets

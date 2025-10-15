@@ -61,6 +61,7 @@ impl OrderbookProvider {
     ///
     /// # Returns
     /// Result indicating success or failure
+    #[allow(dead_code)]
     pub async fn update_deposit_status(&self, deposit_id: &str, new_status: &str) -> Result<()> {
         sqlx::query(
             r#"
@@ -70,6 +71,62 @@ impl OrderbookProvider {
             "#,
         )
         .bind(new_status)
+        .bind(deposit_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Updates the transaction hash for a deposit
+    ///
+    /// # Arguments
+    /// * `deposit_id` - The deposit ID to update
+    /// * `tx_hash` - The transaction hash to set
+    ///
+    /// # Returns
+    /// Result indicating success or failure
+    #[allow(dead_code)]
+    pub async fn update_deposit_tx_hash(&self, deposit_id: &str, tx_hash: &str) -> Result<()> {
+        sqlx::query(
+            r#"
+            UPDATE deposits
+            SET deposit_tx_hash = $1
+            WHERE deposit_id = $2
+            "#,
+        )
+        .bind(tx_hash)
+        .bind(deposit_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Updates both the status and transaction hash for a deposit
+    ///
+    /// # Arguments
+    /// * `deposit_id` - The deposit ID to update
+    /// * `new_status` - The new status to set ("created", "initiated", or "deposited")
+    /// * `tx_hash` - The transaction hash to set
+    ///
+    /// # Returns
+    /// Result indicating success or failure
+    pub async fn update_deposit_status_and_tx_hash(
+        &self,
+        deposit_id: &str,
+        new_status: &str,
+        tx_hash: &str,
+    ) -> Result<()> {
+        sqlx::query(
+            r#"
+            UPDATE deposits
+            SET status = $1, deposit_tx_hash = $2
+            WHERE deposit_id = $3
+            "#,
+        )
+        .bind(new_status)
+        .bind(tx_hash)
         .bind(deposit_id)
         .execute(&self.pool)
         .await?;

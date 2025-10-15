@@ -191,16 +191,26 @@ impl VaultWatcher {
             "Vault deployed successfully"
         );
 
-        // Update deposit status to 'deposited'
+        // Update deposit status to 'deposited' and save the transaction hash
         self.orderbook
-            .update_deposit_status(&deposit.deposit_id, DEPOSIT_STATUS_DEPOSITED)
+            .update_deposit_status_and_tx_hash(
+                &deposit.deposit_id,
+                DEPOSIT_STATUS_DEPOSITED,
+                &tx_hash,
+            )
             .await
-            .map_err(|e| format!("Failed to update deposit status: {}", e))?;
+            .map_err(|e| {
+                format!(
+                    "Failed to update deposit status and transaction hash: {}",
+                    e
+                )
+            })?;
 
         info!(
             deposit_id = %deposit.deposit_id,
             status = DEPOSIT_STATUS_DEPOSITED,
-            "Deposit status updated"
+            tx_hash = %tx_hash,
+            "Deposit status and transaction hash updated"
         );
 
         Ok(())
