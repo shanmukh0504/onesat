@@ -227,6 +227,8 @@ pub async fn create_deposit(
             &request.token,
             &request.target_address,
             &deposit_address,
+            None,
+            None,
         )
         .await
         .map_err(|e| {
