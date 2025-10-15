@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import { ChainDataProvider } from "./context/ChainDataProvider";
 
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-ibm-plex-mono",
@@ -26,7 +27,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${ibmPlexMono.variable} font-mono antialiased`}>
-        {children}
+        <ChainDataProvider>
+          {children}
+        </ChainDataProvider>
       </body>
     </html>
   );

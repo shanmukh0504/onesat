@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import AnimatedLink from '@/components/ui/AnimatedLink';
+import WalletConnectionModal from '@/components/ui/WalletConnectionModal';
 import { cn } from '@/lib/utils';
 import { useWallet } from '@/store/useWallet';
+import Avatar from 'boring-avatars';
 
 interface NavbarProps {
     className?: string;
@@ -16,6 +18,7 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ className }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
     const pathname = usePathname();
     const {
         isXverseAvailable,
@@ -25,23 +28,8 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
         stacksAddress,
         starknetAddress,
         detectProviders,
-        connect,
         disconnect,
     } = useWallet();
-
-    const [isAddressMenuOpen, setIsAddressMenuOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const onClickOutside = (e: MouseEvent) => {
-            if (!menuRef.current) return;
-            if (!menuRef.current.contains(e.target as Node)) {
-                setIsAddressMenuOpen(false);
-            }
-        };
-        document.addEventListener('click', onClickOutside);
-        return () => document.removeEventListener('click', onClickOutside);
-    }, []);
 
     const short = (addr?: string | null, leading: number = 4, trailing: number = 4) => {
         if (!addr) return '';
@@ -53,8 +41,8 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
         detectProviders();
     }, [detectProviders]);
 
-    const onConnectWallet = async () => {
-        await connect();
+    const onConnectWallet = () => {
+        setIsWalletModalOpen(true);
     };
 
     const leftNavigationItems = [
@@ -63,10 +51,14 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
     ];
 
     const rightNavigationItems = [
-        { label: 'Portfolio', href: '/portfolio' },
+        { label: 'portfolio', href: '/portfolio' },
+        { label: 'swap', href: '/swap' },
     ];
 
     const allNavigationItems = [...leftNavigationItems, ...rightNavigationItems];
+
+    // Pick the address for avatar and display, in same priority as before
+    const displayAddress = bitcoinPaymentAddress || starknetAddress || stacksAddress;
 
     return (
         <nav className={cn('w-full px-4 sm:px-6 lg:px-8 py-6 relative', className)}>
@@ -106,7 +98,7 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
                             {item.label}
                         </AnimatedLink>
                     ))}
-                    <div className="flex items-center space-x-4" ref={menuRef}>
+                    <div className="flex items-center space-x-4">
                         {!connected ? (
                             <Button variant="primary" size="md" onClick={onConnectWallet} disabled={isConnecting}>
                                 {isConnecting ? 'Connecting…' : 'Connect Wallet'}
@@ -115,37 +107,18 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
                             <>
                                 <button
                                     className="font-mono text-sm flex items-center space-x-2 px-3 py-2 rounded-full border border-gray-300 hover:bg-gray-50"
-                                    onClick={() => setIsAddressMenuOpen((v) => !v)}
+                                    onClick={() => setIsWalletModalOpen(true)}
                                 >
-                                    <span className="inline-block w-6 h-6 rounded-full bg-[#E6F2FF] border border-[#C6DFFF]" />
-                                    <span>{short(bitcoinPaymentAddress || starknetAddress || stacksAddress)}</span>
-                                    <span className="text-gray-600">{isAddressMenuOpen ? '▴' : '▾'}</span>
+                                    {displayAddress && (
+                                        <Avatar
+                                            size={24}
+                                            name={displayAddress}
+                                            variant="beam"
+                                            colors={["#E6F2FF", "#C6DFFF", "#B793FC", "#8B9EFF", "#E0BEFD"]}
+                                        />
+                                    )}
+                                    <span>{short(displayAddress)}</span>
                                 </button>
-                                {isAddressMenuOpen && (
-                                    <div className="absolute right-8 top-16 z-50 w-80 rounded-md border border-gray-200 bg-white shadow-lg p-3">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-mono opacity-70">{isXverseAvailable ? 'Xverse detected' : 'Xverse not detected'}</span>
-                                            <button className="text-xs underline" onClick={() => setIsAddressMenuOpen(false)}>close</button>
-                                        </div>
-                                        <div className="space-y-2 text-sm font-mono">
-                                            {bitcoinPaymentAddress && (
-                                                <div className="flex items-center justify-between">
-                                                    <span className="opacity-70">Bitcoin</span>
-                                                    <span className="truncate max-w-[60%]" title={bitcoinPaymentAddress}>{short(bitcoinPaymentAddress, 6, 6)}</span>
-                                                </div>
-                                            )}
-                                            {starknetAddress && (
-                                                <div className="flex items-center justify-between">
-                                                    <span className="opacity-70">Starknet</span>
-                                                    <span className="truncate max-w-[60%]" title={starknetAddress}>{short(starknetAddress, 6, 6)}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="mt-3 border-t pt-3 flex items-center justify-between">
-                                            <Button size="sm" variant="danger" onClick={() => { disconnect(); setIsAddressMenuOpen(false); }}>Disconnect</Button>
-                                        </div>
-                                    </div>
-                                )}
                             </>
                         )}
                     </div>
@@ -264,15 +237,27 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
                                                 </div>
                                             </div>
                                             <Button
-                                                variant="danger"
+                                                variant="primary"
                                                 className="w-full"
                                                 onClick={() => {
-                                                    disconnect();
+                                                    setIsWalletModalOpen(true);
                                                     setIsMenuOpen(false);
                                                 }}
                                             >
-                                                Disconnect
+                                                Manage Wallets
                                             </Button>
+                                            {/* Avatar with address name in mobile menu */}
+                                            <div className="flex items-center space-x-3 mt-4">
+                                                {displayAddress && (
+                                                    <Avatar
+                                                        size={32}
+                                                        name={displayAddress}
+                                                        variant="beam"
+                                                        colors={["#E6F2FF", "#C6DFFF", "#B793FC", "#8B9EFF", "#E0BEFD"]}
+                                                    />
+                                                )}
+                                                <span className="font-mono text-xs break-all">{short(displayAddress)}</span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -281,6 +266,12 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
                     </div>
                 </div>
             )}
+            
+            {/* Wallet Connection Modal */}
+            <WalletConnectionModal 
+                isOpen={isWalletModalOpen} 
+                onClose={() => setIsWalletModalOpen(false)} 
+            />
         </nav>
     );
 };
