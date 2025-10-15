@@ -313,3 +313,36 @@ pub async fn get_user_deposits(
         })?;
     Ok(Response::ok(deposits))
 }
+
+#[derive(Deserialize)]
+pub struct UpdateAtomiqSwapIdRequest {
+    pub atomiq_swap_id: String,
+}
+
+/// Updates the atomiq swap id for a deposit
+///
+/// # Path Parameters
+/// * `deposit_id` - The deposit ID
+///
+/// # Returns
+/// Result indicating success or failure
+///
+/// # Request Body
+/// * `atomiq_swap_id` - The atomiq swap id to set
+pub async fn update_atomiq_swap_id(
+    State(state): State<Arc<HandlerState>>,
+    Path(deposit_id): Path<String>,
+    Json(request): Json<UpdateAtomiqSwapIdRequest>,
+) -> ApiResult<()> {
+    state
+        .orderbook
+        .update_atomiq_swap_id(&deposit_id, &request.atomiq_swap_id)
+        .await
+        .map_err(|e| {
+            Response::error(
+                format!("Database error: {}", e),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )
+        })?;
+    Ok(Response::ok(()))
+}

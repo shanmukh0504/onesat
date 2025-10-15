@@ -58,7 +58,7 @@ impl OrderbookProvider {
                 token, target_address, deposit_address, status,
                 created_at, deposit_tx_hash, atomiq_swap_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING 
                 deposit_id,
                 user_address,
@@ -185,5 +185,33 @@ impl OrderbookProvider {
         .await?;
 
         Ok(deposits)
+    }
+
+    /// Updates the atomiq swap id for a deposit
+    ///
+    /// # Arguments
+    /// * `deposit_id` - The deposit ID to update
+    /// * `atomiq_swap_id` - The atomiq swap id to set
+    ///
+    /// # Returns
+    /// Result indicating success or failure
+    pub async fn update_atomiq_swap_id(
+        &self,
+        deposit_id: &str,
+        atomiq_swap_id: &str,
+    ) -> Result<()> {
+        sqlx::query(
+            r#"
+                UPDATE deposits
+                SET atomiq_swap_id = $1
+                WHERE deposit_id = $2
+                "#,
+        )
+        .bind(atomiq_swap_id)
+        .bind(deposit_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
     }
 }
