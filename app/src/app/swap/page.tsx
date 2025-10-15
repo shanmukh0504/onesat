@@ -16,6 +16,7 @@ import {
 } from '@atomiqlabs/chain-starknet';
 import Navbar from '@/components/layout/Navbar';
 import { ChainDataContext } from '../context/ChainDataContext';
+import { useWallet } from '@/store/useWallet';
 
 // Patch fetch to proxy external API calls through our server to avoid CORS issues
 if (typeof window !== 'undefined') {
@@ -41,25 +42,35 @@ if (typeof window !== 'undefined') {
 
 const factory = new SwapperFactory<[StarknetInitializerType]>([StarknetInitializer]);
 const Tokens = factory.Tokens;
+console.log("tokens", factory.Tokens.STARKNET._TESTNET_WBTC_VESU)
 
 export default function SwapPage() {
     const chainData = useContext(ChainDataContext);
     const bitcoinChainData = chainData.BITCOIN;
     const starknetChainData = chainData.STARKNET;
+    
+    // Global wallet state
+    const {
+        bitcoinPaymentAddress,
+        starknetAddress,
+        connected: globalConnected,
+    } = useWallet();
 
     const [starknetRpcUrl] = useState<string>('https://starknet-sepolia.public.blastapi.io/rpc/v0_8');
     const [amountBtc, setAmountBtc] = useState<string>('0.00003');
-    const [dstToken, setDstToken] = useState<'ETH' | 'STRK'>('ETH');
+    const [dstToken, setDstToken] = useState<'ETH' | 'STRK' | 'WBTC'>('ETH');
     const [isInitializing, setIsInitializing] = useState<boolean>(false);
     const [isSwapping, setIsSwapping] = useState<boolean>(false);
     const [logs, setLogs] = useState<string[]>([]);
     const [swapId, setSwapId] = useState<string>('');
     const [lastCreatedSwapId, setLastCreatedSwapId] = useState<string>('');
+    const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
     const btcNetwork = BitcoinNetwork.TESTNET4;
-    const bitcoinAddress = bitcoinChainData?.wallet?.address;
-    const starknetAddress = starknetChainData?.wallet?.address;
-    const connected = Boolean(bitcoinAddress && starknetAddress);
+    // Use global wallet addresses, fallback to ChainDataContext for compatibility
+    const bitcoinAddress = bitcoinPaymentAddress || bitcoinChainData?.wallet?.address;
+    const starknetAddressFromChain = starknetAddress || starknetChainData?.wallet?.address;
+    const connected = globalConnected || Boolean(bitcoinAddress && starknetAddressFromChain);
     const swapper = useMemo(() => {
         const rpc = new RpcProviderWithRetries({ nodeUrl: starknetRpcUrl });
         return factory.newSwapper({
@@ -78,6 +89,25 @@ export default function SwapPage() {
     const log = (line: string) => {
         console.log(line);
         setLogs((l) => [...l, line]);
+    };
+
+    // Helper function to get wallet names
+    const getWalletName = (chain: 'bitcoin' | 'starknet') => {
+        if (chain === 'bitcoin') {
+            return bitcoinChainData?.wallet?.name || 'Bitcoin Wallet';
+        } else {
+            return starknetChainData?.wallet?.name || 'Starknet Wallet';
+        }
+    };
+
+    // Helper function to check if wallet instances are properly available
+    const areWalletInstancesAvailable = () => {
+        const hasBitcoinInstance = bitcoinChainData?.wallet?.instance && 
+            typeof bitcoinChainData.wallet.instance.getReceiveAddress === 'function';
+        const hasStarknetInstance = starknetChainData?.wallet?.instance && 
+            typeof starknetChainData.wallet.instance.getAddress === 'function';
+        
+        return { hasBitcoinInstance, hasStarknetInstance };
     };
 
     useEffect(() => {
@@ -133,14 +163,14 @@ export default function SwapPage() {
 
     // Check and refund any refundable swaps
     const handleCheckRefunds = async () => {
-        if (!starknetAddress || !starknetChainData?.wallet?.instance) {
+        if (!starknetAddressFromChain || !starknetChainData?.wallet?.instance) {
             alert('Please connect your Starknet wallet first');
             return;
         }
 
         try {
             log('Checking for refundable swaps on Starknet...');
-            const refundableSwaps = await swapper.getRefundableSwaps('STARKNET', starknetAddress);
+            const refundableSwaps = await swapper.getRefundableSwaps('STARKNET', starknetAddressFromChain);
             
             if (refundableSwaps.length === 0) {
                 log('No refundable swaps found');
@@ -204,18 +234,28 @@ export default function SwapPage() {
     };
 
     const handleSwap = async () => {
-        if (!connected || !bitcoinAddress || !starknetAddress) {
+        if (!connected || !bitcoinAddress || !starknetAddressFromChain) {
             alert('Please connect both Bitcoin and Starknet wallets first.');
             return;
         }
 
         if (!bitcoinChainData?.wallet?.instance) {
-            alert('Bitcoin wallet instance not available');
+            alert('Bitcoin wallet instance not available. Please try reconnecting your Bitcoin wallet.');
             return;
         }
 
         if (!starknetChainData?.wallet?.instance) {
-            alert('Starknet wallet instance not available');
+            alert('Starknet wallet instance not available. Please try reconnecting your Starknet wallet.');
+            return;
+        }
+
+        // Additional check to ensure wallet instances are properly initialized
+        const { hasBitcoinInstance, hasStarknetInstance } = areWalletInstancesAvailable();
+        if (!hasBitcoinInstance || !hasStarknetInstance) {
+            const missingWallets = [];
+            if (!hasBitcoinInstance) missingWallets.push('Bitcoin');
+            if (!hasStarknetInstance) missingWallets.push('Starknet');
+            alert(`${missingWallets.join(' and ')} wallet instance(s) not properly initialized. Please reconnect your wallets using the wallet modal.`);
             return;
         }
 
@@ -226,7 +266,7 @@ export default function SwapPage() {
             const amountInSats = BigInt(Math.floor(Number(amountBtc) * 1e8));
             log(`Amount: ${amountBtc} BTC (${amountInSats.toString()} sats)`);
 
-            const token = dstToken === 'ETH' ? Tokens.STARKNET.ETH : Tokens.STARKNET.STRK;
+            const token = dstToken === 'WBTC' ? Tokens.STARKNET._TESTNET_WBTC_VESU : Tokens.STARKNET.STRK;
 
             // Check swap limits
             const swapLimits = swapper.getSwapLimits(Tokens.BITCOIN.BTC, token);
@@ -243,7 +283,7 @@ export default function SwapPage() {
                 amountInSats,
                 true, // Amount is input amount
                 bitcoinAddress,
-                starknetAddress,
+                starknetAddressFromChain,
                 {
                     // Optional: request gas drop on destination chain
                     // gasAmount: 1_000_000_000_000_000_000n // 1 STRK
@@ -359,66 +399,52 @@ export default function SwapPage() {
                 </div>
 
                 {/* Connection Status */}
-                <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 border rounded-md">
-                        <div className="text-sm font-mono mb-2">Bitcoin Wallet</div>
-                        {bitcoinChainData?.wallet ? (
-                            <>
-                                <div className="text-xs text-gray-600   mb-2">
-                                    {bitcoinChainData.wallet.name}
+                <div className="mb-6">
+                    {connected ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className={`p-4 border rounded-md ${!areWalletInstancesAvailable().hasBitcoinInstance ? 'border-yellow-300 bg-yellow-50' : ''}`}>
+                                <div className="text-sm font-mono mb-2">Bitcoin Wallet</div>
+                                <div className="text-xs text-gray-600 mb-2">
+                                    {getWalletName('bitcoin')}
                                 </div>
-                                <div className="text-xs font-mono break-all bg-gray-100   p-2 rounded">
+                                <div className="text-xs font-mono break-all bg-gray-100 p-2 rounded">
                                     {bitcoinAddress}
                                 </div>
-                                {bitcoinChainData.disconnect && (
-                                    <button
-                                        onClick={() => bitcoinChainData.disconnect?.()}
-                                        className="mt-2 text-xs text-red-600 hover:text-red-700"
-                                    >
-                                        Disconnect
-                                    </button>
+                                {!areWalletInstancesAvailable().hasBitcoinInstance && (
+                                    <div className="text-xs text-yellow-700 mt-2">
+                                        ⚠ Instance not available - reconnect needed
+                                    </div>
                                 )}
-                            </>
-                        ) : (
-                            <Button
-                                onClick={() => bitcoinChainData?.connect?.()}
-                                disabled={!bitcoinChainData?.connect}
-                                className="w-full"
-                            >
-                                Connect Bitcoin
-                            </Button>
-                        )}
-                    </div>
+                            </div>
 
-                    <div className="p-4 border rounded-md">
-                        <div className="text-sm font-mono mb-2">Starknet Wallet</div>
-                        {starknetChainData?.wallet ? (
-                            <>
-                                <div className="text-xs text-gray-600   mb-2">
-                                    {starknetChainData.wallet.name}
+                            <div className={`p-4 border rounded-md ${!areWalletInstancesAvailable().hasStarknetInstance ? 'border-yellow-300 bg-yellow-50' : ''}`}>
+                                <div className="text-sm font-mono mb-2">Starknet Wallet</div>
+                                <div className="text-xs text-gray-600 mb-2">
+                                    {getWalletName('starknet')}
                                 </div>
-                                <div className="text-xs font-mono break-all bg-gray-100   p-2 rounded">
-                                    {starknetAddress}
+                                <div className="text-xs font-mono break-all bg-gray-100 p-2 rounded">
+                                    {starknetAddressFromChain}
                                 </div>
-                                {starknetChainData.disconnect && (
-                                    <button
-                                        onClick={() => starknetChainData.disconnect?.()}
-                                        className="mt-2 text-xs text-red-600 hover:text-red-700"
-                                    >
-                                        Disconnect
-                                    </button>
+                                {!areWalletInstancesAvailable().hasStarknetInstance && (
+                                    <div className="text-xs text-yellow-700 mt-2">
+                                        ⚠ Instance not available - reconnect needed
+                                    </div>
                                 )}
-                            </>
-                        ) : (
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-6 border rounded-md text-center">
+                            <div className="text-sm font-mono mb-4">
+                                {globalConnected ? '✓ Wallets connected via global state' : '⚠ Connect your wallets to start swapping'}
+                            </div>
                             <Button
-                                onClick={() => starknetChainData?.connect?.()}
-                                disabled={!starknetChainData?.connect}
-                                className="w-full"
+                                onClick={() => setIsWalletModalOpen(true)}
+                                className="w-full md:w-auto"
                             >
-                                Connect Starknet
+                                {globalConnected ? 'Manage Wallets' : 'Connect Wallets'}
                             </Button>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Swap Form */}
@@ -440,10 +466,11 @@ export default function SwapPage() {
                             <select
                                 className="w-full border rounded-md px-3 py-2 font-mono bg-white  "
                                 value={dstToken}
-                                onChange={(e) => setDstToken(e.target.value as 'ETH' | 'STRK')}
+                                onChange={(e) => setDstToken(e.target.value as 'ETH' | 'STRK' | 'WBTC')}
                             >
                                 <option value="ETH">Starknet ETH</option>
                                 <option value="STRK">Starknet STRK</option>
+                                <option value="WBTC">Starknet WBTC</option>
                             </select>
                         </div>
                         <div className="md:col-span-2">
@@ -530,7 +557,7 @@ export default function SwapPage() {
                             </label>
                             <Button
                                 onClick={handleCheckRefunds}
-                                disabled={!starknetAddress || isInitializing}
+                                disabled={!starknetAddressFromChain || isInitializing}
                                 className="w-full"
                             >
                                 Check & Refund
@@ -583,6 +610,7 @@ export default function SwapPage() {
                     </div>
                 </div>
             </div>
+        
         </>
     );
 }

@@ -8,6 +8,7 @@ import { BitcoinNetwork } from '@atomiqlabs/sdk';
 import { StarknetSigner, StarknetFees, RpcProviderWithRetries } from '@atomiqlabs/chain-starknet';
 import { connect, disconnect, StarknetWindowObject } from '@starknet-io/get-starknet';
 import { WalletAccount, wallet } from 'starknet';
+import { useWallet } from '@/store/useWallet';
 
 const BITCOIN_NETWORK = BitcoinNetwork.TESTNET4;
 const BITCOIN_RPC_URL = 'https://mempool.space/testnet4/api';
@@ -15,9 +16,18 @@ const STARKNET_RPC_URL = 'https://starknet-sepolia.public.blastapi.io/rpc/v0_8';
 const STARKNET_CHAIN_ID = '0x534e5f5345504f4c4941'; // SN_SEPOLIA
 
 export function ChainDataProvider({ children }: { children: React.ReactNode }) {
+    // Get store state
+    const { 
+        bitcoinPaymentAddress, 
+        starknetAddress, 
+        bitcoinWalletType: storeBitcoinWalletType,
+        reconnectWallets 
+    } = useWallet();
+
     // Bitcoin wallet state
     const [bitcoinWallet, setBitcoinWallet] = useState<XverseBitcoinWallet | UnisatBitcoinWallet | null>(null);
     const [bitcoinWalletType, setBitcoinWalletType] = useState<'xverse' | 'unisat' | null>(null);
+    const [isConnectingBitcoin, setIsConnectingBitcoin] = useState(false);
 
     // Starknet wallet state
     const [starknetSigner, setStarknetSigner] = useState<StarknetSigner | null>(null);
@@ -50,10 +60,18 @@ export function ChainDataProvider({ children }: { children: React.ReactNode }) {
         return () => clearTimeout(timer);
     }, []);
 
+
+
     // Bitcoin wallet connection
     const connectBitcoinWallet = useCallback(async (walletType: 'xverse' | 'unisat') => {
+        if (isConnectingBitcoin || bitcoinWallet) {
+            console.log('Bitcoin wallet already connected or connecting, skipping...');
+            return;
+        }
+        
         try {
-            console.log(`Connecting ${walletType} wallet...`);
+            setIsConnectingBitcoin(true);
+            console.log(`Connecting ${walletType} wallet via ChainDataProvider...`);
             let wallet: XverseBitcoinWallet | UnisatBitcoinWallet;
 
             if (walletType === 'xverse') {
@@ -64,12 +82,14 @@ export function ChainDataProvider({ children }: { children: React.ReactNode }) {
 
             setBitcoinWallet(wallet);
             setBitcoinWalletType(walletType);
-            console.log(`${walletType} wallet connected:`, wallet.getReceiveAddress());
+            console.log(`${walletType} wallet connected via ChainDataProvider:`, wallet.getReceiveAddress());
         } catch (error) {
             console.error(`Failed to connect ${walletType} wallet:`, error);
             throw error;
+        } finally {
+            setIsConnectingBitcoin(false);
         }
-    }, []);
+    }, [isConnectingBitcoin, bitcoinWallet]);
 
     const disconnectBitcoinWallet = useCallback(() => {
         console.log('Disconnecting Bitcoin wallet...');
@@ -143,6 +163,20 @@ export function ChainDataProvider({ children }: { children: React.ReactNode }) {
             console.error('Failed to disconnect Starknet wallet:', error);
         }
     }, []);
+
+        // Sync with store state - only connect if store has wallet type but we don't have wallet instance
+        // IMPORTANT: Avoid auto-connecting Xverse to prevent repeated popup prompts
+        useEffect(() => {
+            if (
+                storeBitcoinWalletType &&
+                storeBitcoinWalletType !== 'xverse' && // do not auto-connect Xverse to avoid popup spam
+                !bitcoinWallet &&
+                !isConnectingBitcoin
+            ) {
+                console.log('Syncing ChainDataProvider with store wallet type:', storeBitcoinWalletType);
+                connectBitcoinWallet(storeBitcoinWalletType);
+            }
+        }, [storeBitcoinWalletType, bitcoinWallet, isConnectingBitcoin, connectBitcoinWallet]);
 
     // Prepare context value
     const contextValue = useMemo(() => {
