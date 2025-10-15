@@ -15,7 +15,7 @@ use crate::{
     registry::VaultRegistry,
     server::handler::{
         HandlerState, create_deposit, get_created_deposits, get_deposit, get_health,
-        supported_assets, vesu_history, vesu_pools, vesu_positions,
+        get_user_deposits, supported_assets, vesu_history, vesu_pools, vesu_positions,
     },
 };
 
@@ -60,6 +60,7 @@ impl Server {
             .route("/deposit", post(create_deposit))
             .route("/deposit/:deposit_id", get(get_deposit))
             .route("/deposits/created", get(get_created_deposits))
+            .route("/deposits/user/:user_address", get(get_user_deposits))
             .nest(
                 "/vesu",
                 Router::new()

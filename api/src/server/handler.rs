@@ -287,3 +287,27 @@ pub async fn get_created_deposits(
 
     Ok(Response::ok(deposits))
 }
+
+/// Retrieves all deposits for a specific user
+///
+/// # Path Parameters
+/// * `user_address` - The user's wallet address
+///
+/// # Returns
+/// A list of all deposits for the user
+pub async fn get_user_deposits(
+    State(state): State<Arc<HandlerState>>,
+    Path(user_address): Path<String>,
+) -> ApiResult<Vec<DepositResponse>> {
+    let deposits = state
+        .orderbook
+        .get_deposits_by_user_address(&user_address)
+        .await
+        .map_err(|e| {
+            Response::error(
+                format!("Database error: {}", e),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )
+        })?;
+    Ok(Response::ok(deposits))
+}

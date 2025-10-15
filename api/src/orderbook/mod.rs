@@ -139,4 +139,32 @@ impl OrderbookProvider {
 
         Ok(deposits)
     }
+
+    pub async fn get_deposits_by_user_address(
+        &self,
+        user_address: &str,
+    ) -> Result<Vec<DepositResponse>> {
+        let deposits = sqlx::query_as::<_, DepositResponse>(
+            r#"
+            SELECT 
+                deposit_id,
+                user_address,
+                action,
+                amount,
+                token,
+                target_address,
+                deposit_address,
+                status,
+                created_at
+            FROM deposits
+            WHERE user_address = $1
+            ORDER BY created_at DESC
+            "#,
+        )
+        .bind(user_address)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(deposits)
+    }
 }
