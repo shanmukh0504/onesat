@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   // Handle special case: localhost:3000/api/mempool/testnet4/apiaddress/<addr>/utxo (missing slash in "api/address")
   if (
@@ -72,7 +72,8 @@ export async function GET(
   }
 
   try {
-    const path = params.path.join('/');
+    const resolvedParams = await params;
+    const path = resolvedParams.path.join('/');
     const searchParams = request.nextUrl.searchParams.toString();
     const targetUrl = `https://mempool.space/${path}${searchParams ? `?${searchParams}` : ''}`;
     console.log('Proxying mempool request to:', targetUrl);

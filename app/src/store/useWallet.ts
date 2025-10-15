@@ -6,9 +6,9 @@ import defaultWallet, { AddressPurpose, RpcErrorCode } from 'sats-connect';
 import { XverseBitcoinWallet } from '@/lib/bitcoin/XverseBitcoinWallet';
 import { UnisatBitcoinWallet } from '@/lib/bitcoin/UnisatBitcoinWallet';
 import { BitcoinNetwork } from '@atomiqlabs/sdk';
-import { StarknetSigner, RpcProviderWithRetries } from '@atomiqlabs/chain-starknet';
-import { connect, disconnect, StarknetWindowObject } from '@starknet-io/get-starknet';
-import { WalletAccount, wallet } from 'starknet';
+import { RpcProviderWithRetries } from '@atomiqlabs/chain-starknet';
+import { connect, disconnect } from '@starknet-io/get-starknet';
+import { WalletAccount } from 'starknet';
 
 type NumericString = string; // keep balances as strings to avoid float issues
 
@@ -21,7 +21,7 @@ type Balances = {
 const BITCOIN_NETWORK = BitcoinNetwork.TESTNET4;
 const BITCOIN_RPC_URL = 'https://mempool.space/testnet4/api';
 const STARKNET_RPC_URL = 'https://starknet-sepolia.public.blastapi.io/rpc/v0_8';
-const STARKNET_CHAIN_ID = '0x534e5f5345504f4c4941'; // SN_SEPOLIA
+// const STARKNET_CHAIN_ID = '0x534e5f5345504f4c4941'; // SN_SEPOLIA
 
 type WalletState = {
     // detection

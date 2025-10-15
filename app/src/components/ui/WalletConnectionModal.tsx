@@ -4,7 +4,6 @@ import React, { useContext, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { ChainDataContext } from '@/app/context/ChainDataContext';
 import { useWallet } from '@/store/useWallet';
-import { cn } from '@/lib/utils';
 
 interface WalletConnectionModalProps {
     isOpen: boolean;
@@ -13,8 +12,8 @@ interface WalletConnectionModalProps {
 
 const WalletConnectionModal: React.FC<WalletConnectionModalProps> = ({ isOpen, onClose }) => {
     const chainData = useContext(ChainDataContext);
-    const bitcoinChainData = chainData.BITCOIN;
-    const starknetChainData = chainData.STARKNET;
+    // const bitcoinChainData = chainData.BITCOIN;
+    // const starknetChainData = chainData.STARKNET;
     
     const {
         bitcoinPaymentAddress,
@@ -71,6 +70,7 @@ const WalletConnectionModal: React.FC<WalletConnectionModalProps> = ({ isOpen, o
                 starknetAddress ? disconnectStarknet() : undefined,
             ]);
         } catch (e) {
+            console.log("Error disconnecting all wallets:", e);
             // Optionally log or handle errors
         } finally {
             setIsDisconnectingAll(false);

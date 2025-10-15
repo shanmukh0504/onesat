@@ -72,6 +72,7 @@ export abstract class BitcoinWalletBase extends BitcoinWallet {
     }
 
     async signPsbt(psbt: Transaction, signInputs: number[]): Promise<Transaction> {
+        console.log("psbt", psbt, signInputs)
         throw new Error("signPsbt not implemented for this wallet");
     }
 

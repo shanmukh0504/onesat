@@ -42,7 +42,7 @@ if (typeof window !== 'undefined') {
 
 const factory = new SwapperFactory<[StarknetInitializerType]>([StarknetInitializer]);
 const Tokens = factory.Tokens;
-console.log("tokens", factory.Tokens.STARKNET._TESTNET_WBTC_VESU)
+// console.log("tokens", factory.Tokens.STARKNET._TESTNET_WBTC_VESU)
 
 export default function SwapPage() {
     const chainData = useContext(ChainDataContext);
@@ -64,7 +64,6 @@ export default function SwapPage() {
     const [logs, setLogs] = useState<string[]>([]);
     const [swapId, setSwapId] = useState<string>('');
     const [lastCreatedSwapId, setLastCreatedSwapId] = useState<string>('');
-    const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
     const btcNetwork = BitcoinNetwork.TESTNET4;
     // Use global wallet addresses, fallback to ChainDataContext for compatibility
@@ -365,8 +364,9 @@ export default function SwapPage() {
                 // Wait for watchtower to claim (30 second timeout)
                 await swap.waitTillClaimedOrFronted(AbortSignal.timeout(30 * 1000));
                 log('✅ Successfully claimed by the watchtower!');
-            } catch (_e) {
+            } catch (e) {
                 log('Swap not claimed by watchtowers within timeout, claiming manually...');
+                console.log(e as string);
                 try {
                     await swap.claim(starknetChainData.wallet.instance);
                     log('✅ Successfully claimed manually!');
@@ -438,7 +438,6 @@ export default function SwapPage() {
                                 {globalConnected ? '✓ Wallets connected via global state' : '⚠ Connect your wallets to start swapping'}
                             </div>
                             <Button
-                                onClick={() => setIsWalletModalOpen(true)}
                                 className="w-full md:w-auto"
                             >
                                 {globalConnected ? 'Manage Wallets' : 'Connect Wallets'}

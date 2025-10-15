@@ -18,10 +18,7 @@ const STARKNET_CHAIN_ID = '0x534e5f5345504f4c4941'; // SN_SEPOLIA
 export function ChainDataProvider({ children }: { children: React.ReactNode }) {
     // Get store state
     const { 
-        bitcoinPaymentAddress, 
-        starknetAddress, 
         bitcoinWalletType: storeBitcoinWalletType,
-        reconnectWallets 
     } = useWallet();
 
     // Bitcoin wallet state

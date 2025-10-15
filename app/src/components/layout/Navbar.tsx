@@ -28,7 +28,6 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
         stacksAddress,
         starknetAddress,
         detectProviders,
-        disconnect,
     } = useWallet();
 
     const short = (addr?: string | null, leading: number = 4, trailing: number = 4) => {
