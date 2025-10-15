@@ -180,6 +180,10 @@ pub struct DepositResponse {
     /// Timestamp when deposit was created
     #[sqlx(rename = "created_at")]
     pub created_at: chrono::DateTime<chrono::Utc>,
+    /// Transaction hash of the deposit
+    pub deposit_tx_hash: Option<String>,
+    /// Atomiq swap id
+    pub atomiq_swap_id: Option<String>,
 }
 
 /// Custom serializer for BigDecimal to ensure it's serialized as a plain string

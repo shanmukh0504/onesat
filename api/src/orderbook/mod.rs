@@ -18,6 +18,10 @@ impl OrderbookProvider {
             .max_connections(2000)
             .connect(db_url)
             .await?;
+
+        // Run database migrations
+        sqlx::migrate!("./migrations").run(&pool).await?;
+
         Ok(Self::new(pool))
     }
 
@@ -43,14 +47,18 @@ impl OrderbookProvider {
         token: &str,
         target_address: &str,
         deposit_address: &str,
+        deposit_tx_hash: Option<String>,
+        atomiq_swap_id: Option<String>,
     ) -> Result<DepositResponse> {
+        let created_at = chrono::Utc::now();
         let deposit = sqlx::query_as::<_, DepositResponse>(
             r#"
             INSERT INTO deposits (
                 deposit_id, user_address, action, amount, 
-                token, target_address, deposit_address, status
+                token, target_address, deposit_address, status,
+                created_at, deposit_tx_hash, atomiq_swap_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING 
                 deposit_id,
                 user_address,
@@ -60,7 +68,9 @@ impl OrderbookProvider {
                 target_address,
                 deposit_address,
                 status,
-                created_at
+                created_at,
+                deposit_tx_hash,
+                atomiq_swap_id
             "#,
         )
         .bind(deposit_id)
@@ -71,6 +81,9 @@ impl OrderbookProvider {
         .bind(target_address)
         .bind(deposit_address)
         .bind("created")
+        .bind(created_at)
+        .bind(deposit_tx_hash)
+        .bind(atomiq_swap_id)
         .fetch_one(&self.pool)
         .await?;
 
@@ -96,7 +109,9 @@ impl OrderbookProvider {
                 target_address,
                 deposit_address,
                 status,
-                created_at
+                created_at,
+                deposit_tx_hash,
+                atomiq_swap_id
             FROM deposits
             WHERE deposit_id = $1
             "#,
@@ -127,7 +142,9 @@ impl OrderbookProvider {
                 target_address,
                 deposit_address,
                 status,
-                created_at
+                created_at,
+                deposit_tx_hash,
+                atomiq_swap_id
             FROM deposits
             WHERE status = $1
             ORDER BY created_at DESC
@@ -138,5 +155,63 @@ impl OrderbookProvider {
         .await?;
 
         Ok(deposits)
+    }
+
+    pub async fn get_deposits_by_user_address(
+        &self,
+        user_address: &str,
+    ) -> Result<Vec<DepositResponse>> {
+        let deposits = sqlx::query_as::<_, DepositResponse>(
+            r#"
+            SELECT 
+                deposit_id,
+                user_address,
+                action,
+                amount,
+                token,
+                target_address,
+                deposit_address,
+                status,
+                created_at,
+                deposit_tx_hash,
+                atomiq_swap_id
+            FROM deposits
+            WHERE user_address = $1
+            ORDER BY created_at DESC
+            "#,
+        )
+        .bind(user_address)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(deposits)
+    }
+
+    /// Updates the atomiq swap id for a deposit
+    ///
+    /// # Arguments
+    /// * `deposit_id` - The deposit ID to update
+    /// * `atomiq_swap_id` - The atomiq swap id to set
+    ///
+    /// # Returns
+    /// Result indicating success or failure
+    pub async fn update_atomiq_swap_id(
+        &self,
+        deposit_id: &str,
+        atomiq_swap_id: &str,
+    ) -> Result<()> {
+        sqlx::query(
+            r#"
+                UPDATE deposits
+                SET atomiq_swap_id = $1
+                WHERE deposit_id = $2
+                "#,
+        )
+        .bind(atomiq_swap_id)
+        .bind(deposit_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
     }
 }
