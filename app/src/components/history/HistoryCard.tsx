@@ -4,6 +4,8 @@ import React from "react";
 import { VesuHistoryResponse } from "@/types/vesu";
 import Card from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { PROJECTS } from "@/types/earn";
 
 interface HistoryCardProps {
   data: VesuHistoryResponse;
@@ -73,14 +75,20 @@ const HistoryCard: React.FC<HistoryCardProps> = ({ data, className }) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 flex items-center justify-center">
-            <div className="w-full h-full bg-my-grey flex items-center justify-center">
-              <div className="w-2 h-2 bg-gray-600 rounded-sm"></div>
+          <div className="flex items-center gap-2 xs:gap-3">
+            <div className="w-6 h-6 xs:w-7 xs:h-7 flex items-center justify-center bg-my-grey">
+              <Image
+                src={PROJECTS.VESU.iconUrl}
+                alt={`Vesu`}
+                width={20}
+                height={20}
+                className="w-4 h-4 xs:w-5 xs:h-5"
+              />
             </div>
           </div>
-          <span className="font-mono text-sm">Vesu</span>
-          <span className="w-1 h-1 bg-my-grey rounded-full"></span>
-          <span className="font-mono text-sm">Genesis</span>
+          <div className="flex items-center gap-1 xs:gap-2">
+            <h3 className="font-semibold text-base">Vesu</h3>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
