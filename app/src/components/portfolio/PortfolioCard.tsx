@@ -50,15 +50,15 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ data, className }) => {
         <div className="flex items-center gap-2 xs:gap-3">
           <div className="w-6 h-6 xs:w-7 xs:h-7 flex items-center justify-center bg-my-grey">
             <Image
-              src="https://cdn.morpho.org/v2/assets/images/re7.png"
-              alt="Re7 Labs icon"
+              src="https://vesu.xyz/img/curator-logos/vesu-light.png"
+              alt="Vesu"
               width={20}
               height={20}
               className="w-4 h-4 xs:w-5 xs:h-5"
             />
           </div>
           <div className="flex items-center gap-1 xs:gap-2">
-            <h3 className="font-semibold text-base">Re7 Labs</h3>
+            <h3 className="font-semibold text-base">Vesu</h3>
             <span className="w-1 h-1 bg-my-grey rounded-full"></span>
             <span className="text-sm">Genesis</span>
           </div>
