@@ -36,7 +36,12 @@ export function useVesuPositions(
       const data = await vesuAPI.getPositions(walletAddress);
 
       // Handle the new API response format
-      if (data && data.result && Array.isArray(data.result)) {
+      if (
+        data &&
+        data.status === "Ok" &&
+        data.result &&
+        Array.isArray(data.result)
+      ) {
         setPositions(data.result);
       } else if (Array.isArray(data)) {
         setPositions(data);

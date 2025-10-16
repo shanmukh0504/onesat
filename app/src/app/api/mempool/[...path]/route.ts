@@ -1,22 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const ALLOWED_DOMAINS = [
+  "http://localhost:3000",
+  "https://onesat.vercel.app"
+];
+
+function startsWithAny(urlString: string, prefix: string) {
+  return ALLOWED_DOMAINS.some((domain) =>
+    urlString.startsWith(`${domain}${prefix}`)
+  );
+}
+
+function endsWith(urlString: string, suffix: string) {
+  return urlString.endsWith(suffix);
+}
+
+function fullUrlEquals(urlString: string, suffix: string) {
+  return ALLOWED_DOMAINS.some((domain) =>
+    urlString === `${domain}${suffix}`
+  );
+}
+
+function matchAnyDomain(urlString: string, pathPattern: RegExp) {
+  for (const domain of ALLOWED_DOMAINS) {
+    const reg = new RegExp("^" + domain.replace(/\//g, "\\/") + pathPattern.source);
+    const match = urlString.match(reg);
+    if (match) {
+      // Add domain as match[0]
+      return [domain, ...match.slice(1)];
+    }
+  }
+  return null;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
-  // Handle special case: localhost:3000/api/mempool/testnet4/apiaddress/<addr>/utxo (missing slash in "api/address")
+  // Handle special case: <domain>/api/mempool/testnet4/apiaddress/<addr>/utxo (missing slash in "api/address")
   if (
-    request.url.startsWith(
-      "http://localhost:3000/api/mempool/testnet4/apiaddress/"
-    ) &&
-    request.url.endsWith("/utxo")
+    startsWithAny(request.url, "/api/mempool/testnet4/apiaddress/") &&
+    endsWith(request.url, "/utxo")
   ) {
     // Extract the Bitcoin address
     // Pattern: .../apiaddress/<address>/utxo
     const matches = request.url.match(/apiaddress\/([^/]+)\/utxo/);
     if (matches && matches[1]) {
       const address = matches[1];
-      const fixedUrl = `http://localhost:3000/api/mempool/testnet4/api/address/${address}/utxo`;
+
+      const fixedUrlBase = ALLOWED_DOMAINS.find(d => request.url.startsWith(d))!;
+      const fixedUrl = `${fixedUrlBase}/api/mempool/testnet4/api/address/${address}/utxo`;
       // Proxy the corrected request
       const resp = await fetch(fixedUrl, { cache: "no-store" });
       const contentType =
@@ -34,13 +67,13 @@ export async function GET(
     }
   }
 
-  // Hardcoded special case for "apiv1/fees/recommended"
+  // Hardcoded special case for "<domain>/api/mempool/testnet4/apiv1/fees/recommended"
   if (
-    request.url ===
-    "http://localhost:3000/api/mempool/testnet4/apiv1/fees/recommended"
+    fullUrlEquals(request.url, "/api/mempool/testnet4/apiv1/fees/recommended")
   ) {
+    const specialUrlBase = ALLOWED_DOMAINS.find(d => request.url.startsWith(d))!;
     const specialUrl =
-      "http://localhost:3000/api/mempool/testnet4/api/v1/fees/recommended";
+      `${specialUrlBase}/api/mempool/testnet4/api/v1/fees/recommended`;
     const resp = await fetch(specialUrl, { cache: "no-store" });
     const contentType = resp.headers.get("Content-Type") || "application/json";
     const body = await resp.arrayBuffer();
@@ -55,15 +88,17 @@ export async function GET(
     });
   }
 
-  // Hardcoded special case for "apiv1/cpfp/<txid>"
-  // Match: http://localhost:3000/api/mempool/testnet4/apiv1/cpfp/<txid>
-  const cpfpMatch = request.url.match(
-    /^http:\/\/localhost:3000\/api\/mempool\/testnet4\/apiv1\/cpfp\/([a-f0-9]{64})(\?.*)?$/
+  // Hardcoded special case for "<domain>/api/mempool/testnet4/apiv1/cpfp/<txid>"
+  // Support both domains by matching with any domain prefix
+  // Pattern: <domain>/api/mempool/testnet4/apiv1/cpfp/<txid>
+  // txid is 64 chars [a-f0-9]
+  const cpfpMatch = matchAnyDomain(request.url,
+    /\/api\/mempool\/testnet4\/apiv1\/cpfp\/([a-f0-9]{64})(\?.*)?$/
   );
   if (cpfpMatch) {
-    const txid = cpfpMatch[1];
-    const query = cpfpMatch[2] || "";
-    const fixedUrl = `http://localhost:3000/api/mempool/testnet4/api/v1/cpfp/${txid}${query}`;
+    const [domain, txid, query] = cpfpMatch;
+    const q = query || "";
+    const fixedUrl = `${domain}/api/mempool/testnet4/api/v1/cpfp/${txid}${q}`;
     const resp = await fetch(fixedUrl, { cache: "no-store" });
     const contentType = resp.headers.get("Content-Type") || "application/json";
     const body = await resp.arrayBuffer();

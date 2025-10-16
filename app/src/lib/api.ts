@@ -3,7 +3,7 @@
  * Handles communication with the OneSat API backend
  */
 
-import { VesuHistoryApiResponse } from "@/types/vesu";
+import { VesuHistoryApiResponse, VesuPositionsApiResponse } from "@/types/vesu";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -65,7 +65,9 @@ export const vesuAPI = {
    * Get positions for a wallet address
    */
   getPositions: async (walletAddress: string) => {
-    return apiFetch<any>(`/vesu/positions?walletAddress=${walletAddress}`);
+    return apiFetch<VesuPositionsApiResponse>(
+      `/vesu/positions?walletAddress=${walletAddress}`
+    );
   },
 
   /**
