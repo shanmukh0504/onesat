@@ -197,7 +197,7 @@ export const useWallet = create<WalletState>()(
             if (response.error.code === RpcErrorCode.USER_REJECTION) {
               // user cancelled, keep state
             } else {
-              alert(response.error.message || "Failed to connect wallet");
+              // alert(response.error.message || "Failed to connect wallet");
             }
           }
         } catch (err: unknown) {
@@ -209,7 +209,7 @@ export const useWallet = create<WalletState>()(
             error?.error?.message ||
             error?.message ||
             "Unexpected error while connecting wallet";
-          alert(message);
+          // alert(message);
         } finally {
           set({ isConnecting: false });
         }

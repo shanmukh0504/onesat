@@ -26,12 +26,12 @@ const OffRampPage: React.FC<OffRampPageProps> = ({ className }) => {
 
     const handleWithdraw = () => {
         if (!amount || !destinationAddress) {
-            alert('Please fill in all fields');
+            // alert('Please fill in all fields');
             return;
         }
         // TODO: Implement withdrawal logic
         console.log('Withdrawing:', { amount, asset: selectedAsset, to: destinationAddress });
-        alert('Withdrawal initiated! This is a demo.');
+        // alert('Withdrawal initiated! This is a demo.');
     };
 
     return (

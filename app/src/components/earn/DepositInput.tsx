@@ -373,7 +373,7 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
 
   const handleStartEarning = async () => {
     if (!connected || !bitcoinPaymentAddress || !starknetAddress) {
-      alert("Please connect both Bitcoin and Starknet wallets first.");
+      // alert("Please connect both Bitcoin and Starknet wallets first.");
       return;
     }
 
@@ -389,9 +389,9 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (error) {
           console.error("Failed to reconnect Bitcoin wallet:", error);
-          alert(
-            "Failed to reconnect Bitcoin wallet. Please try connecting manually."
-          );
+          //  alert(
+          //   "Failed to reconnect Bitcoin wallet. Please try connecting manually."
+          // );
         }
       }
       return;
@@ -408,9 +408,9 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (error) {
           console.error("Failed to reconnect Starknet wallet:", error);
-          alert(
-            "Failed to reconnect Starknet wallet. Please try connecting manually."
-          );
+          // alert(
+          //   "Failed to reconnect Starknet wallet. Please try connecting manually."
+          // );
         }
       }
       return;
@@ -421,34 +421,34 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
       if (
         typeof bitcoinChainData.wallet.instance.getReceiveAddress !== "function"
       ) {
-        alert(
-          "Bitcoin wallet instance is not properly initialized. Please reconnect your Bitcoin wallet."
-        );
+        // alert(
+        //   "Bitcoin wallet instance is not properly initialized. Please reconnect your Bitcoin wallet."
+        // );
         return;
       }
     } catch (error) {
-      alert(
-        "Bitcoin wallet instance error. Please reconnect your Bitcoin wallet."
-      );
+      // alert(
+      //   "Bitcoin wallet instance error. Please reconnect your Bitcoin wallet."
+      // );
       return;
     }
 
     try {
       if (typeof starknetChainData.wallet.instance.getAddress !== "function") {
-        alert(
-          "Starknet wallet instance is not properly initialized. Please reconnect your Starknet wallet."
-        );
+        // alert(
+        //   "Starknet wallet instance is not properly initialized. Please reconnect your Starknet wallet."
+        // );
         return;
       }
     } catch (error) {
-      alert(
-        "Starknet wallet instance error. Please reconnect your Starknet wallet."
-      );
+      // alert(
+      //   "Starknet wallet instance error. Please reconnect your Starknet wallet."
+      // );
       return;
     }
 
     if (!amountBtc || !selectedAsset || !quote) {
-      alert("Please enter an amount and wait for the quote.");
+      // alert("Please enter an amount and wait for the quote.");
       return;
     }
 
@@ -656,7 +656,7 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
       setDepositStatus("deposited");
     } catch (e: any) {
       console.error("❌ Deposit failed:", e);
-      alert("Deposit failed: " + (e?.message || String(e)));
+      // alert("Deposit failed: " + (e?.message || String(e)));
     } finally {
       setIsSwapping(false);
     }

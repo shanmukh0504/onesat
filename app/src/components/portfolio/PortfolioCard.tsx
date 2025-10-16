@@ -16,7 +16,17 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ data, className }) => {
   // Format collateral value
   const formatValue = (value: string, decimals: number) => {
     const num = parseFloat(value) / Math.pow(10, decimals);
-    return num.toFixed(2);
+
+    // If the number is very small, show more decimal places
+    if (num < 0.01) {
+      return num.toFixed(8);
+    } else if (num < 1) {
+      return num.toFixed(6);
+    } else if (num < 10) {
+      return num.toFixed(4);
+    } else {
+      return num.toFixed(2);
+    }
   };
 
   // Get USD value
@@ -27,7 +37,16 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ data, className }) => {
     const collateralValue = parseFloat(value) / Math.pow(10, 8); // WBTC has 8 decimals
     const priceValue =
       parseFloat(usdPrice.value) / Math.pow(10, usdPrice.decimals);
-    return (collateralValue * priceValue).toFixed(2);
+    const usdValue = collateralValue * priceValue;
+
+    // If the USD value is very small, show more decimal places
+    if (usdValue < 0.01) {
+      return usdValue.toFixed(6);
+    } else if (usdValue < 1) {
+      return usdValue.toFixed(4);
+    } else {
+      return usdValue.toFixed(2);
+    }
   };
 
   const collateralAmount = formatValue(
@@ -84,13 +103,13 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ data, className }) => {
           />
           <div className="flex items-center gap-1">
             <Image
-              src="/USDCIcon.svg"
-              alt="USDC"
+              src="https://garden.imgix.net/token-images/wbtc.svg"
+              alt="WBTC"
               width={20}
               height={20}
               className="w-4 h-4 xs:w-5 xs:h-5"
             />
-            <div className="text-xs">USDC</div>
+            <div className="text-xs">WBTC</div>
           </div>
 
           <div className="relative">
@@ -123,8 +142,8 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ data, className }) => {
               {collateralAmount}
             </div>
             <Image
-              src="/USDCIcon.svg"
-              alt="USDC"
+              src="https://garden.imgix.net/token-images/wbtc.svg"
+              alt="WBTC"
               width={16}
               height={16}
               className="w-3 h-3 xs:w-4 xs:h-4 ml-1"
