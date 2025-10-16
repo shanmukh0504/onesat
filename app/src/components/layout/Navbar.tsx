@@ -265,11 +265,11 @@ const Navbar: React.FC<NavbarProps> = ({ className }) => {
                     </div>
                 </div>
             )}
-            
+
             {/* Wallet Connection Modal */}
-            <WalletConnectionModal 
-                isOpen={isWalletModalOpen} 
-                onClose={() => setIsWalletModalOpen(false)} 
+            <WalletConnectionModal
+                isOpen={isWalletModalOpen}
+                onClose={() => setIsWalletModalOpen(false)}
             />
         </nav>
     );

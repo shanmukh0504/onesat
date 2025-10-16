@@ -14,7 +14,7 @@ const WalletConnectionModal: React.FC<WalletConnectionModalProps> = ({ isOpen, o
     const chainData = useContext(ChainDataContext);
     // const bitcoinChainData = chainData.BITCOIN;
     // const starknetChainData = chainData.STARKNET;
-    
+
     const {
         bitcoinPaymentAddress,
         starknetAddress,
@@ -28,18 +28,27 @@ const WalletConnectionModal: React.FC<WalletConnectionModalProps> = ({ isOpen, o
         isConnecting,
     } = useWallet();
 
-    const [isConnectingBitcoin, setIsConnectingBitcoin] = useState(false);
+    const [isConnectingXverse, setIsConnectingXverse] = useState(false);
+    const [isConnectingUnisat, setIsConnectingUnisat] = useState(false);
     const [isConnectingStarknet, setIsConnectingStarknet] = useState(false);
     const [isDisconnectingAll, setIsDisconnectingAll] = useState(false);
 
     const handleBitcoinConnect = async (walletType: 'xverse' | 'unisat') => {
-        setIsConnectingBitcoin(true);
+        if (walletType === 'xverse') {
+            setIsConnectingXverse(true);
+        } else {
+            setIsConnectingUnisat(true);
+        }
         try {
             await connectBitcoin(walletType);
         } catch (error) {
             console.error('Failed to connect Bitcoin wallet:', error);
         } finally {
-            setIsConnectingBitcoin(false);
+            if (walletType === 'xverse') {
+                setIsConnectingXverse(false);
+            } else {
+                setIsConnectingUnisat(false);
+            }
         }
     };
 
@@ -82,11 +91,11 @@ const WalletConnectionModal: React.FC<WalletConnectionModalProps> = ({ isOpen, o
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             {/* Backdrop */}
-            <div 
+            <div
                 className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                 onClick={onClose}
             />
-            
+
             {/* Modal */}
             <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -133,21 +142,23 @@ const WalletConnectionModal: React.FC<WalletConnectionModalProps> = ({ isOpen, o
                                 {isXverseAvailable && (
                                     <Button
                                         onClick={() => handleBitcoinConnect('xverse')}
-                                        disabled={isConnectingBitcoin || isConnecting}
+                                        disabled={isConnectingXverse}
                                         className="w-full"
                                         variant="primary"
+                                        willHover={false}
                                     >
-                                        {isConnectingBitcoin ? 'Connecting...' : 'Connect Xverse'}
+                                        {isConnectingXverse ? 'Connecting...' : 'Connect Xverse'}
                                     </Button>
                                 )}
                                 {isUniSatAvailable && (
                                     <Button
                                         onClick={() => handleBitcoinConnect('unisat')}
-                                        disabled={isConnectingBitcoin || isConnecting}
+                                        disabled={isConnectingUnisat}
                                         className="w-full"
                                         variant="primary"
+                                        willHover={false}
                                     >
-                                        {isConnectingBitcoin ? 'Connecting...' : 'Connect UniSat'}
+                                        {isConnectingUnisat ? 'Connecting...' : 'Connect UniSat'}
                                     </Button>
                                 )}
                                 {!isXverseAvailable && !isUniSatAvailable && (
@@ -180,9 +191,10 @@ const WalletConnectionModal: React.FC<WalletConnectionModalProps> = ({ isOpen, o
                         ) : (
                             <Button
                                 onClick={handleStarknetConnect}
-                                disabled={isConnectingStarknet || isConnecting}
+                                disabled={isConnectingStarknet}
                                 className="w-full"
                                 variant="primary"
+                                willHover={false}
                             >
                                 {isConnectingStarknet ? 'Connecting...' : 'Connect Starknet'}
                             </Button>
@@ -192,27 +204,25 @@ const WalletConnectionModal: React.FC<WalletConnectionModalProps> = ({ isOpen, o
 
                 {/* Status */}
                 <div className="text-xs font-mono text-gray-600 mb-4">
-                    {connected ? '✓ Both wallets connected' : '⚠ Connect both wallets to use swap functionality'}
+                    {connected ? 'Both wallets connected' : 'Connect both wallets to use swap functionality'}
                 </div>
 
-                {/* Close button */}
-                <Button
-                    onClick={onClose}
-                    className="w-full"
-                    variant="secondary"
-                >
-                    Close
-                </Button>
+                {
+                    connected ?
+                        (
+                            <Button
+                                onClick={handleDisconnectAll}
+                                className="w-full mt-2"
+                                variant="danger"
+                                disabled={isDisconnectingAll || (!bitcoinPaymentAddress && !starknetAddress)}
+                                willHover={false}
+                            >
+                                {isDisconnectingAll ? 'Disconnecting...' : 'Disconnect All'}
+                            </Button>
+                        )
+                        : null
+                }
 
-                {/* Disconnect all button */}
-                <Button
-                    onClick={handleDisconnectAll}
-                    className="w-full mt-2"
-                    variant="danger"
-                    disabled={isDisconnectingAll || (!bitcoinPaymentAddress && !starknetAddress)}
-                >
-                    {isDisconnectingAll ? 'Disconnecting...' : 'Disconnect All'}
-                </Button>
             </div>
         </div>
     );

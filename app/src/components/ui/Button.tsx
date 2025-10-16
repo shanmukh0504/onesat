@@ -17,10 +17,12 @@ const Button: React.FC<ButtonProps> = ({
   willHover = true,
   ...props
 }) => {
+  const actualVariant = props.disabled ? "disabled" : variant;
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -34,7 +36,7 @@ const Button: React.FC<ButtonProps> = ({
   }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!buttonRef.current || !containerRef.current || isPressed || isMobile)
+    if (!buttonRef.current || !containerRef.current || isPressed || isMobile || !willHover)
       return;
 
     const rect = buttonRef.current.getBoundingClientRect();
@@ -46,13 +48,14 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   const handleMouseEnter = () => {
-    if (!isMobile && willHover) {
+    if (!isMobile) {
+      setHasInteracted(true);
       setIsHovered(true);
     }
   };
 
   const handleMouseLeave = () => {
-    if (!isMobile && willHover) {
+    if (!isMobile) {
       setIsHovered(false);
       setMousePosition({ x: 0, y: 0 });
     }
@@ -119,35 +122,34 @@ const Button: React.FC<ButtonProps> = ({
         ref={buttonRef}
         className={cn(
           baseStyles,
-          variants[variant],
+          variants[actualVariant],
           sizes[size],
           className,
-          (variant === "primary" || variant === "danger") &&
-            !isMobile && [
-              "shimmer-effect",
-              isHovered ? "shimmer-forward" : "shimmer-backward",
-            ]
+          (actualVariant === "primary" || actualVariant === "danger") &&
+          hasInteracted &&
+          !isMobile && [
+            "shimmer-effect",
+            isHovered ? "shimmer-forward" : "shimmer-backward",
+          ]
         )}
         style={{
           transform:
-            isPressed || !willHover
+            isPressed
               ? "translate(4px, 4px)"
               : isHovered && !isMobile && willHover
-              ? `translate(${mousePosition.x}px, ${mousePosition.y}px)`
-              : isMobile
-              ? "translate(-4px, -4px)"
-              : "translate(0px, 0px)",
+                ? `translate(${mousePosition.x}px, ${mousePosition.y}px)`
+                : !willHover || isMobile
+                  ? "translate(-4px, -4px)"
+                  : "translate(0px, 0px)",
           transition:
             isPressed || !isHovered || isMobile || !willHover
               ? "transform 0.2s ease-out"
               : "none",
           boxShadow: isPressed
             ? "none"
-            : isHovered && !isMobile && willHover
-            ? "4px 4px 0 0 #9ea393"
-            : isMobile
-            ? "4px 4px 0 0 #9ea393"
-            : "none",
+            : !willHover || isMobile || (isHovered && !isMobile)
+              ? "4px 4px 0 0 #9ea393"
+              : "none",
           position: "relative",
           zIndex: 2,
         }}

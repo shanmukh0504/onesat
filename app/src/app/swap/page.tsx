@@ -42,7 +42,6 @@ if (typeof window !== 'undefined') {
 
 const factory = new SwapperFactory<[StarknetInitializerType]>([StarknetInitializer]);
 const Tokens = factory.Tokens;
-// console.log("tokens", factory.Tokens.STARKNET._TESTNET_WBTC_VESU)
 
 export default function SwapPage() {
     const chainData = useContext(ChainDataContext);
@@ -57,7 +56,7 @@ export default function SwapPage() {
     } = useWallet();
 
     const [starknetRpcUrl] = useState<string>('https://starknet-sepolia.public.blastapi.io/rpc/v0_8');
-    const [amountBtc, setAmountBtc] = useState<string>('0.00003');
+    const [amountBtc, setAmountBtc] = useState<string>('');
     const [dstToken, setDstToken] = useState<'ETH' | 'STRK' | 'WBTC'>('ETH');
     const [isInitializing, setIsInitializing] = useState<boolean>(false);
     const [isSwapping, setIsSwapping] = useState<boolean>(false);
@@ -86,7 +85,6 @@ export default function SwapPage() {
     }, [btcNetwork, starknetRpcUrl]);
 
     const log = (line: string) => {
-        console.log(line);
         setLogs((l) => [...l, line]);
     };
 
@@ -288,11 +286,6 @@ export default function SwapPage() {
                     // gasAmount: 1_000_000_000_000_000_000n // 1 STRK
                 }
             );
-            console.log(bitcoinAddress)
-
-            console.log("wallet", bitcoinChainData)
-            console.log("wallet", bitcoinChainData.chain)
-            console.log("wallet", bitcoinChainData.wallet)
             // Log swap details
             const newSwapId = swap.getId();
             log('Swap created: ' + newSwapId);
@@ -331,16 +324,10 @@ export default function SwapPage() {
 
             if (!(bitcoinChainData.wallet.instance as any).publicKey) {
                 (bitcoinChainData.wallet.instance as any).publicKey = (bitcoinChainData.wallet.instance as any).pubkey;
-                console.log('Added publicKey fallback');
             }
             if (!(bitcoinChainData.wallet.instance as any).getAccounts) {
                 (bitcoinChainData.wallet?.instance as any).getAccounts = () => (bitcoinChainData.wallet?.instance as any).toBitcoinWalletAccounts();
-                console.log('Added getAccounts fallback');
             }
-            
-            console.log('Public key:', bitcoinChainData.wallet.instance.publicKey)
-            console.log('Address:', bitcoinChainData.wallet.instance.address)
-            console.log('Accounts:', bitcoinChainData.wallet.instance.getAccounts())
             const txId = await swap.sendBitcoinTransaction(bitcoinChainData.wallet.instance);
             log('Bitcoin transaction sent: ' + txId);
 
@@ -366,7 +353,6 @@ export default function SwapPage() {
                 log('✅ Successfully claimed by the watchtower!');
             } catch (e) {
                 log('Swap not claimed by watchtowers within timeout, claiming manually...');
-                console.log(e as string);
                 try {
                     await swap.claim(starknetChainData.wallet.instance);
                     log('✅ Successfully claimed manually!');
@@ -396,54 +382,6 @@ export default function SwapPage() {
                     <div className="font-semibold mb-2">Network Configuration:</div>
                     <div>• Bitcoin: Testnet4</div>
                     <div>• Starknet: Sepolia</div>
-                </div>
-
-                {/* Connection Status */}
-                <div className="mb-6">
-                    {connected ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className={`p-4 border rounded-md ${!areWalletInstancesAvailable().hasBitcoinInstance ? 'border-yellow-300 bg-yellow-50' : ''}`}>
-                                <div className="text-sm font-mono mb-2">Bitcoin Wallet</div>
-                                <div className="text-xs text-gray-600 mb-2">
-                                    {getWalletName('bitcoin')}
-                                </div>
-                                <div className="text-xs font-mono break-all bg-gray-100 p-2 rounded">
-                                    {bitcoinAddress}
-                                </div>
-                                {!areWalletInstancesAvailable().hasBitcoinInstance && (
-                                    <div className="text-xs text-yellow-700 mt-2">
-                                        ⚠ Instance not available - reconnect needed
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className={`p-4 border rounded-md ${!areWalletInstancesAvailable().hasStarknetInstance ? 'border-yellow-300 bg-yellow-50' : ''}`}>
-                                <div className="text-sm font-mono mb-2">Starknet Wallet</div>
-                                <div className="text-xs text-gray-600 mb-2">
-                                    {getWalletName('starknet')}
-                                </div>
-                                <div className="text-xs font-mono break-all bg-gray-100 p-2 rounded">
-                                    {starknetAddressFromChain}
-                                </div>
-                                {!areWalletInstancesAvailable().hasStarknetInstance && (
-                                    <div className="text-xs text-yellow-700 mt-2">
-                                        ⚠ Instance not available - reconnect needed
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="p-6 border rounded-md text-center">
-                            <div className="text-sm font-mono mb-4">
-                                {globalConnected ? '✓ Wallets connected via global state' : '⚠ Connect your wallets to start swapping'}
-                            </div>
-                            <Button
-                                className="w-full md:w-auto"
-                            >
-                                {globalConnected ? 'Manage Wallets' : 'Connect Wallets'}
-                            </Button>
-                        </div>
-                    )}
                 </div>
 
                 {/* Swap Form */}

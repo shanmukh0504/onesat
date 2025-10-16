@@ -5,7 +5,7 @@ A RESTful API service for OneSat that provides asset information, price data, an
 ## Base URL
 
 ```
-http://localhost:4433
+http://localhost:6969
 ```
 
 ## Authentication
@@ -43,7 +43,7 @@ Online
 
 **Example:**
 ```bash
-curl http://localhost:4433/health
+curl http://localhost:6969/health
 ```
 
 ### Create Deposit
@@ -95,7 +95,7 @@ Create a new deposit and get the deposit address for tracking.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:4433/deposit \
+curl -X POST http://localhost:6969/deposit \
   -H "Content-Type: application/json" \
   -d '{
     "user_address": "0x123...",
@@ -143,7 +143,7 @@ Retrieve details of a specific deposit by its ID.
 
 **Example:**
 ```bash
-curl http://localhost:4433/deposit/0x1234567890abcdef...
+curl http://localhost:6969/deposit/0x1234567890abcdef...
 ```
 
 ### Get Created Deposits
@@ -185,7 +185,7 @@ Retrieve all deposits with "created" status.
 
 **Example:**
 ```bash
-curl http://localhost:4433/deposits/created
+curl http://localhost:6969/deposits/created
 ```
 
 ### Get Supported Assets
@@ -226,7 +226,7 @@ Get a list of all supported assets with their current prices.
 
 **Example:**
 ```bash
-curl http://localhost:4433/assets
+curl http://localhost:6969/assets
 ```
 
 ## Vesu Protocol Integration
@@ -242,7 +242,7 @@ Retrieve positions for a specific wallet address.
 
 **Example:**
 ```bash
-curl "http://localhost:4433/vesu/positions?walletAddress=0x123..."
+curl "http://localhost:6969/vesu/positions?walletAddress=0x123..."
 ```
 
 **Response:**
@@ -267,7 +267,7 @@ Retrieve transaction history for a specific wallet address.
 
 **Example:**
 ```bash
-curl "http://localhost:4433/vesu/history?walletAddress=0x123..."
+curl "http://localhost:6969/vesu/history?walletAddress=0x123..."
 ```
 
 **Response:**
@@ -293,10 +293,10 @@ Retrieve pool information from Vesu protocol.
 **Examples:**
 ```bash
 # Get all pools
-curl http://localhost:4433/vesu/pools
+curl http://localhost:6969/vesu/pools
 
 # Get specific pool
-curl "http://localhost:4433/vesu/pools?poolAddress=0x456..."
+curl "http://localhost:6969/vesu/pools?poolAddress=0x456..."
 ```
 
 **Response:**

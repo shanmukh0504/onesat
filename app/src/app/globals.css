@@ -41,7 +41,7 @@ body {
 /* Shimmer animations */
 @keyframes shimmer-forward {
   0% {
-    transform: translateX(-100%) rotate(-45deg);
+    transform: translateX(-150%) rotate(-45deg);
     opacity: 0;
   }
 
@@ -50,14 +50,14 @@ body {
   }
 
   100% {
-    transform: translateX(100%) rotate(-45deg);
+    transform: translateX(150%) rotate(-45deg);
     opacity: 0;
   }
 }
 
 @keyframes shimmer-backward {
   0% {
-    transform: translateX(100%) rotate(-45deg);
+    transform: translateX(150%) rotate(-45deg);
     opacity: 0;
   }
 
@@ -66,7 +66,7 @@ body {
   }
 
   100% {
-    transform: translateX(-100%) rotate(-45deg);
+    transform: translateX(-150%) rotate(-45deg);
     opacity: 0;
   }
 }
@@ -88,4 +88,39 @@ body {
 
 .shimmer-backward:before {
   animation: shimmer-backward 0.4s ease-out forwards;
+}
+
+@keyframes slideUp {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg,
+      rgba(158, 163, 147, 0.4) 0%,
+      rgba(158, 163, 147, 0.2) 50%,
+      rgba(158, 163, 147, 0.4) 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
