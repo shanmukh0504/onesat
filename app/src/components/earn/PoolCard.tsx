@@ -60,8 +60,6 @@ const PoolCard: React.FC<PoolCardProps> = ({ data, className }) => {
           </div>
           <div className="flex items-center gap-1 xs:gap-2">
             <h3 className="font-semibold text-base">{data.projectName}</h3>
-            <span className="w-1 h-1 bg-my-grey rounded-full"></span>
-            <span className="text-sm">Genesis</span>
           </div>
         </div>
 
