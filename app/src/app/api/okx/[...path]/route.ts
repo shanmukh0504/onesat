@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
@@ -6,16 +6,16 @@ export async function GET(
 ) {
   try {
     const resolvedParams = await params;
-    const path = resolvedParams.path.join('/');
+    const path = resolvedParams.path.join("/");
     const searchParams = request.nextUrl.searchParams.toString();
-    const url = `https://www.okx.com/${path}${searchParams ? `?${searchParams}` : ''}`;
-    
-    console.log('Proxying request to:', url);
-    
+    const url = `https://www.okx.com/${path}${
+      searchParams ? `?${searchParams}` : ""
+    }`;
+
     const response = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Accept': 'application/json',
+        Accept: "application/json",
       },
     });
 
@@ -24,18 +24,18 @@ export async function GET(
     }
 
     const data = await response.json();
-    
+
     return NextResponse.json(data, {
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
       },
     });
   } catch (error) {
-    console.error('Error proxying OKX request:', error);
+    console.error("Error proxying OKX request:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch from OKX' },
+      { error: "Failed to fetch from OKX" },
       { status: 500 }
     );
   }
@@ -45,10 +45,9 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
     },
   });
 }
-
