@@ -17,6 +17,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'dv3jj1unlp2jl.cloudfront.net',
+        port: '',
+        pathname: '/128/color/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'garden-finance.imgix.net',
         port: '',
         pathname: '/token-images/**',

@@ -180,6 +180,9 @@ const PoolCard: React.FC<PoolCardProps> = ({ data, className }) => {
                   width={20}
                   height={20}
                   className="w-4 h-4 xs:w-5 xs:h-5 rounded-full"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/USDCIcon.svg";
+                  }}
                 />
               ))}
             </div>

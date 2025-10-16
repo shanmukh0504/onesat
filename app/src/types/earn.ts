@@ -21,21 +21,6 @@ export const CURRENCIES = {
         name: "Bitcoin",
         symbol: "BTC",
         iconUrl: "https://garden-finance.imgix.net/token-images/bitcoin.svg"
-    },
-    ETHEREUM: {
-        name: "Ethereum",
-        symbol: "ETH",
-        iconUrl: "https://garden-finance.imgix.net/token-images/ethereum.svg"
-    },
-    USDC: {
-        name: "USDC",
-        symbol: "USDC",
-        iconUrl: "https://garden-finance.imgix.net/token-images/usdc.svg"
-    },
-    USDT: {
-        name: "USDT",
-        symbol: "USDT",
-        iconUrl: "https://garden-finance.imgix.net/token-images/usdt.svg"
     }
 } as const;
 
