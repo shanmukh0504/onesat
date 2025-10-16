@@ -130,7 +130,7 @@ export default function SwapPage() {
     // Retrieve existing swap by ID
     const handleRetrieveSwap = async () => {
         if (!swapId) {
-            alert('Please enter a swap ID');
+            // // alert('Please enter a swap ID');
             return;
         }
 
@@ -161,7 +161,7 @@ export default function SwapPage() {
     // Check and refund any refundable swaps
     const handleCheckRefunds = async () => {
         if (!starknetAddressFromChain || !starknetChainData?.wallet?.instance) {
-            alert('Please connect your Starknet wallet first');
+            // // alert('Please connect your Starknet wallet first');
             return;
         }
 
@@ -195,7 +195,7 @@ export default function SwapPage() {
     // Check spendable balances
     const handleCheckBalances = async () => {
         if (!connected) {
-            alert('Please connect both wallets first');
+            // // alert('Please connect both wallets first');
             return;
         }
 
@@ -232,17 +232,17 @@ export default function SwapPage() {
 
     const handleSwap = async () => {
         if (!connected || !bitcoinAddress || !starknetAddressFromChain) {
-            alert('Please connect both Bitcoin and Starknet wallets first.');
+            // alert('Please connect both Bitcoin and Starknet wallets first.');
             return;
         }
 
         if (!bitcoinChainData?.wallet?.instance) {
-            alert('Bitcoin wallet instance not available. Please try reconnecting your Bitcoin wallet.');
+            // alert('Bitcoin wallet instance not available. Please try reconnecting your Bitcoin wallet.');
             return;
         }
 
         if (!starknetChainData?.wallet?.instance) {
-            alert('Starknet wallet instance not available. Please try reconnecting your Starknet wallet.');
+            // alert('Starknet wallet instance not available. Please try reconnecting your Starknet wallet.');
             return;
         }
 
@@ -252,7 +252,7 @@ export default function SwapPage() {
             const missingWallets = [];
             if (!hasBitcoinInstance) missingWallets.push('Bitcoin');
             if (!hasStarknetInstance) missingWallets.push('Starknet');
-            alert(`${missingWallets.join(' and ')} wallet instance(s) not properly initialized. Please reconnect your wallets using the wallet modal.`);
+            // alert(`${missingWallets.join(' and ')} wallet instance(s) not properly initialized. Please reconnect your wallets using the wallet modal.`);
             return;
         }
 
