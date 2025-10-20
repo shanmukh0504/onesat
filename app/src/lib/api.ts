@@ -125,6 +125,28 @@ export const depositAPI = {
     return data.result;
   },
 
+  updateAtomiqSwapId: async (depositId: string, atomiqSwapId: string) => {
+    const response = await fetch(`${API_BASE_URL}/deposit/${depositId}/atomiq-swap-id`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ atomiq_swap_id: atomiqSwapId }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data: ApiResponse<any> = await response.json();
+
+    if (data.status === "Error") {
+      throw new Error(data.error || "Failed to update atomiq swap id");
+    }
+
+    return data.result;
+  },
+
   /**
    * Get deposit by ID
    */
@@ -137,6 +159,13 @@ export const depositAPI = {
    */
   getCreatedDeposits: async () => {
     return apiFetch<any>("/deposits/created");
+  },
+
+  /**
+   * Get user deposit history
+   */
+  getUserHistory: async (walletAddress: string) => {
+    return apiFetch<any>(`/deposits/user/${walletAddress}`);
   },
 };
 

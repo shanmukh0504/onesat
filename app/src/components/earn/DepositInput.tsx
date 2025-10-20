@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo, useContext, useRef } from "react";
+import { useState, useEffect, useMemo, useContext } from "react";
+import { useRouter } from "next/navigation";
 import Card from "../ui/Card";
 import Image from "next/image";
 import Button from "../ui/Button";
-import { DepositStatus } from "./DepositStatus";
+import { DepositStatus } from "../history/DepositStatus";
+import { AssetSelectorModal } from "./AssetSelectorModal";
 import { BitcoinNetwork, SwapperFactory } from "@atomiqlabs/sdk";
 import {
   RpcProviderWithRetries,
@@ -27,8 +29,8 @@ if (typeof window !== "undefined") {
       typeof input === "string"
         ? input
         : input instanceof URL
-        ? input.href
-        : input.url;
+          ? input.href
+          : input.url;
     if (url.includes("mempool.space")) {
       const proxiedUrl = url.replace("https://mempool.space", "/api/mempool");
       return originalFetch(proxiedUrl, init);
@@ -50,25 +52,28 @@ interface DepositInputProps {
   poolData?: any;
 }
 
-interface StoredDepositData {
-  swapId: string;
-  depositId: string;
-  selectedAsset: any;
-}
-
 export const DepositInput = ({ poolData }: DepositInputProps) => {
+  const router = useRouter();
   const chainData = useContext(ChainDataContext);
   const bitcoinChainData = chainData.BITCOIN;
   const starknetChainData = chainData.STARKNET;
 
-  const { bitcoinPaymentAddress, starknetAddress, connected } = useWallet();
+  const {
+    bitcoinPaymentAddress,
+    starknetAddress,
+    connected,
+    pendingDeposits,
+    addPendingDeposit,
+    updatePendingDeposit,
+    removePendingDeposit,
+    fetchPendingDeposits
+  } = useWallet();
 
-  const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [amountBtc, setAmountBtc] = useState<string>("");
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
   const [isInitializing, setIsInitializing] = useState<boolean>(false);
   const [isSwapping, setIsSwapping] = useState<boolean>(false);
-  const [showAssetDropdown, setShowAssetDropdown] = useState(false);
+  const [showAssetModal, setShowAssetModal] = useState(false);
   const [quote, setQuote] = useState<any>(null);
   const [quoteAmount, setQuoteAmount] = useState<number>(0);
   const [isGettingQuote, setIsGettingQuote] = useState(false);
@@ -81,44 +86,9 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
   const starknetRpcUrl = "https://starknet-sepolia.public.blastapi.io/rpc/v0_8";
   const btcNetwork = BitcoinNetwork.TESTNET4;
 
-  // Ref for dropdown click outside detection
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
   // Get collateral assets from pool data
   const collateralAssets = poolData?.assets || [];
   const poolId = poolData?.id || poolData?.poolId;
-
-  // LocalStorage helper functions
-  const getStoredDepositKey = (poolId: string) => `onesat_deposit_${poolId}`;
-
-  const getStoredDeposit = (poolId: string): StoredDepositData | null => {
-    if (typeof window === "undefined") return null;
-    try {
-      const stored = localStorage.getItem(getStoredDepositKey(poolId));
-      return stored ? JSON.parse(stored) : null;
-    } catch (e) {
-      console.error("Failed to get stored deposit:", e);
-      return null;
-    }
-  };
-
-  const setStoredDeposit = (poolId: string, data: StoredDepositData) => {
-    if (typeof window === "undefined") return;
-    try {
-      localStorage.setItem(getStoredDepositKey(poolId), JSON.stringify(data));
-    } catch (e) {
-      console.error("Failed to store deposit:", e);
-    }
-  };
-
-  const removeStoredDeposit = (poolId: string) => {
-    if (typeof window === "undefined") return;
-    try {
-      localStorage.removeItem(getStoredDepositKey(poolId));
-    } catch (e) {
-      console.error("Failed to remove stored deposit:", e);
-    }
-  };
 
   // Initialize swapper
   const swapper = useMemo(() => {
@@ -185,69 +155,56 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
     }
   }, [collateralAssets]);
 
-  // Handle click outside to close dropdown
+  // Fetch pending deposits on mount if connected
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowAssetDropdown(false);
-      }
-    };
-
-    if (showAssetDropdown) {
-      document.addEventListener("mousedown", handleClickOutside);
+    if (connected && starknetAddress) {
+      fetchPendingDeposits();
     }
+  }, [connected, starknetAddress]);
 
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showAssetDropdown]);
-
-  // Restore from localStorage on mount
+  // Restore from Zustand store on mount
   useEffect(() => {
     if (!poolId || isInitializing || collateralAssets.length === 0) return;
 
-    const storedData = getStoredDeposit(poolId);
-    if (storedData) {
-      console.log("🔄 ===== RESTORING DEPOSIT FROM STORAGE =====");
-      console.log("📦 Stored Data:", storedData);
-      setCurrentDepositId(storedData.depositId);
+    // Find pending deposit for this pool
+    const pendingDeposit = pendingDeposits.find(
+      (deposit) => deposit.poolId === poolId || deposit.targetAddress === poolId
+    );
+
+    if (pendingDeposit) {
+      setCurrentDepositId(pendingDeposit.depositId);
 
       // Restore selected asset
       const restoredAsset = collateralAssets.find(
-        (asset: any) => asset.address === storedData.selectedAsset?.address
+        (asset: any) => asset.address === pendingDeposit.token
       );
       if (restoredAsset) {
         setSelectedAsset(restoredAsset);
       }
 
       // Try to restore swap state from Atomiq SDK
-      (async () => {
-        try {
-          const swap = await swapper.getSwapById(storedData.swapId);
-          if (swap) {
-            const state = swap.getState();
-            console.log("🔄 ===== RESTORED SWAP STATE =====");
-            console.log("📊 Current Swap State:", state);
+      const swapId = pendingDeposit.swapId;
+      if (swapId) {
+        (async () => {
+          try {
+            const swap = await swapper.getSwapById(swapId);
+            if (swap) {
+              const state = swap.getState();
+              setSwapState(state);
 
-            setSwapState(state);
-
-            // Listen to swap state changes
-            swap.events.on("swapState", (updatedSwap) => {
-              const newState = updatedSwap.getState();
-              console.log("🔄 ===== SWAP STATE CHANGED (RESTORED SWAP) =====");
-              console.log("📊 New State:", newState, "Previous State:", state);
-              setSwapState(newState);
-            });
+              // Listen to swap state changes
+              swap.events.on("swapState", (updatedSwap) => {
+                const newState = updatedSwap.getState();
+                setSwapState(newState);
+              });
+            }
+          } catch (e) {
+            console.error("Failed to restore swap:", e);
           }
-        } catch (e) {
-          console.error("Failed to restore swap:", e);
-        }
-      })();
+        })();
+      }
     }
-  }, [poolId, isInitializing, collateralAssets, swapper]);
+  }, [poolId, isInitializing, collateralAssets, swapper, pendingDeposits]);
 
   useEffect(() => {
     const fetchBtcBalance = async () => {
@@ -284,11 +241,6 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
     const pollDepositStatus = async () => {
       try {
         const result = await depositAPI.getDeposit(currentDepositId);
-        console.log("📊 ===== DEPOSIT STATUS CHECK =====");
-        console.log("🆔 Deposit ID:", currentDepositId);
-        console.log("📈 Current Status:", result.status);
-        console.log("📋 Full Response:", result);
-
         setDepositStatus(result.status);
 
         if (result.status === "deposited") {
@@ -296,10 +248,15 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
           setCurrentDepositId(null);
           setSwapState(0);
 
-          // Remove from localStorage
-          if (poolId) {
-            removeStoredDeposit(poolId);
-          }
+          // Remove from Zustand store
+          removePendingDeposit(currentDepositId);
+        } else {
+          // Update pending deposit status in store
+          updatePendingDeposit(currentDepositId, {
+            status: result.status,
+            depositTxHash: result.deposit_tx_hash,
+            atomiqSwapId: result.atomiq_swap_id,
+          });
         }
       } catch (e: any) {
         console.error("Failed to fetch deposit status:", e?.message);
@@ -312,7 +269,7 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
     // Poll every 5 seconds
     const interval = setInterval(pollDepositStatus, 5000);
     return () => clearInterval(interval);
-  }, [currentDepositId, depositStatus, poolId]);
+  }, [currentDepositId, depositStatus]);
 
   // Get quote when amount or asset changes
   useEffect(() => {
@@ -373,7 +330,6 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
 
   const handleStartEarning = async () => {
     if (!connected || !bitcoinPaymentAddress || !starknetAddress) {
-      // alert("Please connect both Bitcoin and Starknet wallets first.");
       return;
     }
 
@@ -389,9 +345,6 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (error) {
           console.error("Failed to reconnect Bitcoin wallet:", error);
-          //  alert(
-          //   "Failed to reconnect Bitcoin wallet. Please try connecting manually."
-          // );
         }
       }
       return;
@@ -408,60 +361,37 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (error) {
           console.error("Failed to reconnect Starknet wallet:", error);
-          // alert(
-          //   "Failed to reconnect Starknet wallet. Please try connecting manually."
-          // );
         }
       }
       return;
     }
 
-    // Additional validation to ensure wallet instances are functional
     try {
       if (
         typeof bitcoinChainData.wallet.instance.getReceiveAddress !== "function"
       ) {
-        // alert(
-        //   "Bitcoin wallet instance is not properly initialized. Please reconnect your Bitcoin wallet."
-        // );
         return;
       }
     } catch (error) {
-      // alert(
-      //   "Bitcoin wallet instance error. Please reconnect your Bitcoin wallet."
-      // );
       return;
     }
 
     try {
       if (typeof starknetChainData.wallet.instance.getAddress !== "function") {
-        // alert(
-        //   "Starknet wallet instance is not properly initialized. Please reconnect your Starknet wallet."
-        // );
         return;
       }
     } catch (error) {
-      // alert(
-      //   "Starknet wallet instance error. Please reconnect your Starknet wallet."
-      // );
       return;
     }
 
     if (!amountBtc || !selectedAsset || !quote) {
-      // alert("Please enter an amount and wait for the quote.");
       return;
     }
 
     try {
-      console.log("🚀 ===== STARTING DEPOSIT PROCESS =====");
-      console.log("💰 Amount:", amountBtc, "BTC");
-      console.log("🏦 Asset:", selectedAsset.symbol);
-      console.log("👤 User Address:", starknetAddress);
-
       setIsSwapping(true);
       setSwapState(0); // Reset swap state for new deposit
 
-      console.log("📝 ===== STEP 1: CREATING DEPOSIT =====");
       const depositResult = await depositAPI.createDeposit({
         user_address: starknetAddress,
         action: 1,
@@ -469,9 +399,6 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
         token: selectedAsset.address,
         target_address: selectedAsset.vToken.address,
       });
-      console.log("✅ ===== DEPOSIT CREATED =====");
-      console.log("🆔 Deposit ID:", depositResult.deposit_id);
-      console.log("📋 Full Deposit Response:", depositResult);
 
       // Get the deposit address from the response
       let depositAddress = depositResult.deposit_address;
@@ -486,27 +413,30 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
         depositAddress = "0x" + paddedAddress;
       }
 
-      console.log("📍 ===== DEPOSIT ADDRESS PROCESSED =====");
-      console.log("🏠 Original Address:", depositResult.deposit_address);
-      console.log("🏠 Processed Address:", depositAddress);
-
       setCurrentDepositId(depositResult.deposit_id);
       setDepositStatus("created");
 
-      console.log("🎯 ===== STEP 1 COMPLETE: DEPOSIT CREATED =====");
-      console.log("📊 Current Status: created");
-      console.log("📊 Current Swap State: 0");
+      // Add to Zustand store
+      addPendingDeposit({
+        depositId: depositResult.deposit_id,
+        swapId: null,
+        poolId: poolId,
+        selectedAsset: selectedAsset,
+        createdAt: new Date().toISOString(),
+        status: "created",
+        depositAddress: depositAddress,
+        amount: quoteAmount.toString(),
+        token: selectedAsset.address,
+        targetAddress: selectedAsset.vToken.address,
+        depositTxHash: null,
+        atomiqSwapId: null,
+      });
 
-      // Show status modal after step 1
-      setIsStatusOpen(true);
-
-      // Wait for step 1 to be visible before proceeding
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Wait for a moment before proceeding
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Step 2: Create swap with deposit_address as destination
-      console.log("🔄 ===== STEP 2: CREATING SWAP =====");
       const amountInSats = BigInt(Math.floor(Number(amountBtc) * 1e8));
-      console.log("💰 Amount in Sats:", amountInSats.toString());
 
       // Map asset symbol to Atomiq token
       let token;
@@ -517,7 +447,6 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
       } else {
         token = Tokens.STARKNET.ETH;
       }
-      console.log("🪙 Target Token:", token);
 
       const swap = await swapper.swap(
         Tokens.BITCOIN.BTC,
@@ -530,46 +459,21 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
       );
 
       const swapId = swap.getId();
-      console.log("🔄 ===== SWAP CREATED =====");
-      console.log("🆔 Swap ID:", swapId);
+
+      const result = await depositAPI.updateAtomiqSwapId(depositResult.deposit_id, swapId);
+      console.log("Result:", result);
+
+      // Update Zustand store with swapId
+      updatePendingDeposit(depositResult.deposit_id, {
+        swapId: swapId,
+        atomiqSwapId: swapId,
+      });
 
       // Track swap state changes
       swap.events.on("swapState", (updatedSwap) => {
         const state = updatedSwap.getState();
-        console.log("🔄 ===== SWAP STATE CHANGED =====");
-        console.log("📊 New State:", state, "Previous State:", swapState);
-        console.log("⏰ Timestamp:", new Date().toISOString());
-
-        // Only update state if it's actually progressing
-        // State 0 = Created, State 1+ = BTC detected and processing
         if (state > swapState) {
           setSwapState(state);
-
-          // Log each state transition
-          if (state === 1) {
-            console.log("🎯 ===== BTC DEPOSIT DETECTED (State 1) =====");
-            console.log(
-              "⚠️  Note: This means BTC was detected but NOT confirmed yet!"
-            );
-          } else if (state === 2) {
-            console.log("🎯 ===== BTC CONFIRMATION STARTED (State 2) =====");
-            console.log("⏳ Waiting for Bitcoin confirmations...");
-          } else if (state === 3) {
-            console.log(
-              "🎯 ===== BTC CONFIRMED & CONVERSION STARTED (State 3) ====="
-            );
-            console.log("🔄 Converting BTC to target token...");
-          } else if (state === 4) {
-            console.log("🎯 ===== CONVERSION COMPLETE (State 4) =====");
-            console.log("✅ Ready for vault deposit!");
-          }
-
-          // Add delay when BTC deposit is detected (state >= 1)
-          if (state >= 1 && swapState < 1) {
-            setTimeout(() => {
-              console.log("⏱️  ===== 1 SECOND DELAY COMPLETE =====");
-            }, 1000);
-          }
         }
       });
 
@@ -586,86 +490,32 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
       }
 
       // Step 3: Send Bitcoin transaction
-      console.log("🚀 ===== STEP 3: SENDING BITCOIN TRANSACTION =====");
-      console.log("💸 Sending BTC to:", bitcoinPaymentAddress);
-      console.log("💰 Amount:", amountBtc, "BTC");
-
       const txId = await swap.sendBitcoinTransaction(
         bitcoinChainData.wallet!.instance
       );
 
-      console.log("✅ ===== BITCOIN TRANSACTION SENT =====");
       console.log("🆔 Transaction ID:", txId);
-      console.log(
-        "🔗 Explorer:",
-        `https://blockstream.info/testnet/tx/${txId}`
-      );
-      console.log("📊 Current Status: created");
-      console.log("📊 Current Swap State:", swapState);
 
-      // Wait a moment to show step 3 progression
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Update deposit with tx hash
+      updatePendingDeposit(depositResult.deposit_id, {
+        depositTxHash: txId,
+      });
 
-      if (poolId) {
-        setStoredDeposit(poolId, {
-          swapId: swapId,
-          depositId: depositResult.deposit_id,
-          selectedAsset: selectedAsset,
-        });
-        console.log("💾 ===== DEPOSIT SAVED TO STORAGE =====");
-      }
+      // Redirect to history page
+      router.push("/history");
 
       // Step 4: Wait for confirmation with progress updates
-      console.log("⏳ ===== STEP 4: WAITING FOR BITCOIN CONFIRMATIONS =====");
-      console.log("🎯 Waiting for 2/2 confirmations before proceeding...");
-      console.log(
-        "⚠️  IMPORTANT: Swap should NOT progress to state 3+ until 2/2 confirmations!"
-      );
-
       await swap.waitForBitcoinTransaction(
         undefined,
-        2,
-        (txId, confirmations, targetConfirmations, txEtaMs) => {
-          if (txId == null) return;
-          const etaSeconds = Math.floor(txEtaMs / 1000);
-          console.log("📊 ===== BITCOIN CONFIRMATION UPDATE =====");
-          console.log("🆔 TX ID:", txId);
-          console.log(
-            "✅ Confirmations:",
-            confirmations,
-            "/",
-            targetConfirmations
-          );
-          console.log("⏱️  ETA:", etaSeconds, "seconds");
-          console.log("📊 Current Swap State:", swapState);
-
-          if (confirmations >= targetConfirmations) {
-            console.log("🎉 ===== BITCOIN FULLY CONFIRMED (2/2) =====");
-            console.log(
-              "✅ Now safe to proceed to conversion and vault deposit!"
-            );
-          }
-        }
+        2
       );
-
-      // Final step completion
-      console.log("🎯 ===== STEP 4 COMPLETE: BITCOIN CONFIRMED =====");
-      console.log("📊 Final Status: deposited");
-      console.log("📊 Final Swap State:", swapState);
 
       setDepositStatus("deposited");
     } catch (e: any) {
       console.error("❌ Deposit failed:", e);
-      // alert("Deposit failed: " + (e?.message || String(e)));
     } finally {
       setIsSwapping(false);
     }
-  };
-
-  const formatNumber = (value: number) => {
-    if (value >= 1000000) return `${(value / 1000000).toFixed(2)}M`;
-    if (value >= 1000) return `${(value / 1000).toFixed(2)}K`;
-    return value.toFixed(2);
   };
 
   const calculateEquivalent = () => {
@@ -708,33 +558,33 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
       <Card
         isActive={false}
         willHover={false}
-        className="text-left grid md:grid-cols-3 mt-10 grid-cols-1 gap-8"
+        className="text-left grid md:grid-cols-3 mt-6 xs:mt-8 md:mt-10 grid-cols-1 gap-6 xs:gap-7 md:gap-8"
       >
-        <div className="flex flex-col items-center justify-center gap-2 w-full md:border-r border-b md:border-b-0 pb-9 md:pb-0 border-my-grey md:pr-9">
+        <div className="flex flex-col items-center justify-center gap-2 xs:gap-2.5 w-full md:border-r border-b md:border-b-0 pb-6 xs:pb-7 md:pb-0 border-my-grey md:pr-6 xs:md:pr-7 md:pr-9">
           <div className="flex items-center justify-between w-full flex-wrap gap-2">
-            <span className="text-lg">I want to deposit</span>
+            <span className="text-base xs:text-lg">I want to deposit</span>
           </div>
-          <div className="flex items-center justify-between w-full border-b border-my-grey pt-4">
+          <div className="flex items-center justify-between w-full border-b border-my-grey pt-3 xs:pt-4">
             <input
               type="number"
               placeholder="0.0002"
               value={amountBtc}
               onChange={(e) => setAmountBtc(e.target.value)}
-              className="text-[32px] lg:text-[36px] font-medium bg-transparent focus:outline-none active:outline-none w-[70%]"
-              step="0.00000001"
+              className="text-[28px] xs:text-[32px] lg:text-[36px] font-medium bg-transparent focus:outline-none active:outline-none w-[70%]"
+              step="0.00001"
             />
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 xs:gap-2">
               <Image
                 src="/BTCIon.svg"
                 alt="BTC"
                 width={32}
                 height={32}
-                className="w-8 h-8"
+                className="w-6 h-6 xs:w-7 xs:h-7 md:w-8 md:h-8"
               />
-              <p className="text-2xl">BTC</p>
+              <p className="text-lg xs:text-xl md:text-2xl">BTC</p>
             </span>
           </div>
-          <div className="flex items-center justify-between w-full text-sm font-medium">
+          <div className="flex items-center justify-between w-full text-xs xs:text-sm font-medium">
             <span>
               ≈ ${((parseFloat(amountBtc) || 0) * btcPrice).toFixed(2)}
             </span>
@@ -747,110 +597,53 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-center gap-2 w-full md:border-r border-b md:border-b-0 pb-9 md:pb-0 border-my-grey md:pr-9 md:pl-7">
+        <div className="flex flex-col items-center justify-center gap-2 xs:gap-2.5 w-full md:border-r border-b md:border-b-0 pb-6 xs:pb-7 md:pb-0 border-my-grey md:pr-6 xs:md:pr-7 md:pr-9 md:pl-5 xs:md:pl-6 md:pl-7">
           <div className="flex items-center justify-start w-full">
-            <span className="text-lg text-nowrap">Equivalent to</span>
+            <span className="text-base xs:text-lg text-nowrap">Equivalent to</span>
           </div>
-          <div className="flex items-center justify-between w-full border-b border-my-grey pt-4">
-            <span className="text-[32px] lg:text-[36px] font-medium text-primary">
+          <div className="flex items-center justify-between w-full border-b border-my-grey pt-3 xs:pt-4">
+            <span className="text-[28px] xs:text-[32px] lg:text-[36px] font-medium text-primary">
               {isGettingQuote ? "..." : calculateEquivalent()}
             </span>
-            <div className="relative" ref={dropdownRef}>
-              <button
-                className="flex items-center gap-2 relative"
-                onClick={() => setShowAssetDropdown(!showAssetDropdown)}
+            <button
+              className="flex items-center gap-1.5 xs:gap-2 hover:opacity-80 transition-opacity"
+              onClick={() => setShowAssetModal(true)}
+            >
+              <Image
+                src={
+                  selectedAsset
+                    ? getTokenImageUrl(selectedAsset.symbol)
+                    : getTokenImageUrl("wbtc")
+                }
+                alt={selectedAsset?.symbol || "Asset"}
+                width={32}
+                height={32}
+                className="w-6 h-6 xs:w-7 xs:h-7 md:w-8 md:h-8"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/USDCIcon.svg";
+                }}
+              />
+              <div className="flex flex-col items-start">
+                <p className="text-base xs:text-lg font-medium">
+                  {selectedAsset?.symbol || "Select"}
+                </p>
+              </div>
+              <svg
+                className="w-4 h-4 xs:w-5 xs:h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <Image
-                  src={
-                    selectedAsset
-                      ? getTokenImageUrl(selectedAsset.symbol)
-                      : getTokenImageUrl("wbtc")
-                  }
-                  alt={selectedAsset?.symbol || "Asset"}
-                  width={32}
-                  height={32}
-                  className="w-8 h-8"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/USDCIcon.svg";
-                  }}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
                 />
-                <div className="flex flex-col items-start">
-                  <p className="text-lg font-medium">
-                    {selectedAsset?.symbol || "Select"}
-                  </p>
-                </div>
-                <svg
-                  className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
-                    showAssetDropdown ? "rotate-180" : ""
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-
-              {showAssetDropdown && (
-                <div className="absolute top-full mt-2 right-0 w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto">
-                  {collateralAssets.map((asset: any, index: number) => (
-                    <button
-                      key={index}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-b-0 transition-colors duration-150"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedAsset(asset);
-                        setShowAssetDropdown(false);
-                      }}
-                    >
-                      <Image
-                        src={
-                          getTokenImageUrl(asset.symbol) ||
-                          getTokenImageUrl("wbtc")
-                        }
-                        alt={asset.symbol}
-                        width={24}
-                        height={24}
-                        className="w-6 h-6"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/USDCIcon.svg";
-                        }}
-                      />
-                      <div className="flex flex-col items-start">
-                        <span className="text-sm font-medium text-gray-900">
-                          {asset.symbol}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {asset.name}
-                        </span>
-                      </div>
-                      {selectedAsset?.symbol === asset.symbol && (
-                        <div className="ml-auto">
-                          <svg
-                            className="w-4 h-4 text-primary"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+              </svg>
+            </button>
           </div>
-          <div className="flex items-center justify-start w-full text-sm font-medium">
+          <div className="flex items-center justify-start w-full text-xs xs:text-sm font-medium">
             <div className="flex items-center gap-1">
               <span className="font-normal">Fees: </span>
               <span>{calculateFees()}</span>
@@ -859,35 +652,36 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
                 alt="Info"
                 width={12}
                 height={12}
-                className="w-3 h-3"
+                className="w-2.5 h-2.5 xs:w-3 xs:h-3"
               />
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-center gap-2 w-full md:pl-7">
+        <div className="flex flex-col items-center justify-center gap-2 xs:gap-2.5 w-full md:pl-5 xs:md:pl-6 md:pl-7">
           <div className="flex items-center justify-between w-full">
-            <span className="text-lg text-nowrap">Monthly earnings</span>
-            <span className="text-lg text-nowrap">
+            <span className="text-base xs:text-lg text-nowrap">Monthly earnings</span>
+            <span className="text-base xs:text-lg text-nowrap font-medium">
               {calculateMonthlyEarnings()}
             </span>
           </div>
           <div className="flex items-center justify-between w-full">
-            <span className="text-lg text-nowrap">Est. 1 yr return</span>
-            <span className="text-lg text-nowrap">
+            <span className="text-base xs:text-lg text-nowrap">Est. 1 yr return</span>
+            <span className="text-base xs:text-lg text-nowrap font-medium">
               {calculateYearlyReturn()}
             </span>
           </div>
           <Button
             variant="primary"
             willHover={true}
-            className="w-full"
+            className="w-full text-sm xs:text-base"
             onClick={() => {
               if (currentDepositId && depositStatus !== "deposited") {
-                setIsStatusOpen(true);
+                // Redirect to history page to view status
+                router.push("/history");
               } else if (isInitializing || isSwapping) {
-                // Open status modal during initialization or processing
-                setIsStatusOpen(true);
+                // Redirect to history page during processing
+                router.push("/history");
               } else {
                 handleStartEarning();
               }
@@ -903,23 +697,21 @@ export const DepositInput = ({ poolData }: DepositInputProps) => {
             {isSwapping
               ? "Processing..."
               : isInitializing
-              ? "Initializing..."
-              : currentDepositId && depositStatus !== "deposited"
-              ? "Order Status"
-              : "Start Earning"}
+                ? "Initializing..."
+                : currentDepositId && depositStatus !== "deposited"
+                  ? "View Order Status"
+                  : "Start Earning"}
           </Button>
         </div>
       </Card>
 
-      {/* Deposit Status Modal */}
-      <DepositStatus
-        isOpen={isStatusOpen}
-        onClose={() => setIsStatusOpen(false)}
-        swapState={swapState}
-        depositStatus={depositStatus}
+      {/* Asset Selector Modal */}
+      <AssetSelectorModal
+        isOpen={showAssetModal}
+        onClose={() => setShowAssetModal(false)}
+        assets={collateralAssets}
         selectedAsset={selectedAsset}
-        isInitializing={isInitializing}
-        isSwapping={isSwapping}
+        onSelectAsset={setSelectedAsset}
       />
     </>
   );

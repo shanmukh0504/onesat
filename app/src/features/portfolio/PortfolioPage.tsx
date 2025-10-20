@@ -7,6 +7,7 @@ import { useVesuPositions } from "@/hooks/useVesuPositions";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import PortfolioCard from "@/components/portfolio/PortfolioCard";
+import PortfolioCardSkeleton from "@/components/skeletons/PortfolioCardSkeleton";
 
 interface PortfolioPageProps {
   className?: string;
@@ -14,8 +15,20 @@ interface PortfolioPageProps {
 
 const PortfolioPage: React.FC<PortfolioPageProps> = ({ className }) => {
   const { connected, starknetAddress, connect } = useWallet();
-  const { positions, loading: positionsLoading } =
+  const { positions, loading: positionsLoading, refetch } =
     useVesuPositions(starknetAddress);
+
+  // Handle successful withdrawal
+  const handleWithdrawSuccess = () => {
+    // Refetch positions after withdrawal
+    refetch();
+  };
+
+  // Handle successful modification (deposit or withdraw from modify modal)
+  const handleModifySuccess = () => {
+    // Refetch positions after modification
+    refetch();
+  };
 
   if (!connected) {
     return (
@@ -81,8 +94,8 @@ const PortfolioPage: React.FC<PortfolioPageProps> = ({ className }) => {
               <p className="font-mono text-xs xs:text-sm sm:text-md xl:text-lg max-w-md text-center sm:text-right">
                 {starknetAddress
                   ? `${starknetAddress.slice(0, 6)}...${starknetAddress.slice(
-                      -4
-                    )}`
+                    -4
+                  )}`
                   : ""}
               </p>
             </h1>
@@ -121,18 +134,18 @@ const PortfolioPage: React.FC<PortfolioPageProps> = ({ className }) => {
         {positionsLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <Card key={index} className="p-8">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-5 h-5 border-2 border-my-grey border-t-transparent rounded-full animate-spin" />
-                  <p className="font-mono">Loading...</p>
-                </div>
-              </Card>
+              <PortfolioCardSkeleton key={index} />
             ))}
           </div>
         ) : positions && positions.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {positions.map((position, index) => (
-              <PortfolioCard key={index} data={position} />
+              <PortfolioCard
+                key={index}
+                data={position}
+                onWithdrawSuccess={handleWithdrawSuccess}
+                onModifySuccess={handleModifySuccess}
+              />
             ))}
           </div>
         ) : (

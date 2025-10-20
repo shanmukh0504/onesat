@@ -51,7 +51,7 @@ const PoolDetailSkeleton: React.FC<PoolDetailSkeletonProps> = ({ className }) =>
             </div>
 
             {/* Deposit Input Card Skeleton */}
-            <Card className="text-left grid md:grid-cols-3 mt-10 grid-cols-1 gap-8">
+            <Card willHover={false} className="text-left grid md:grid-cols-3 mt-10 grid-cols-1 gap-8">
                 {/* BTC Input Section */}
                 <div className="flex flex-col items-center justify-center gap-2 w-full md:border-r border-b md:border-b-0 pb-9 md:pb-0 border-my-grey md:pr-9">
                     <div className="flex items-center justify-between w-full flex-wrap gap-2">
@@ -113,7 +113,7 @@ const PoolDetailSkeleton: React.FC<PoolDetailSkeletonProps> = ({ className }) =>
             <div className="bg-my-grey w-full h-px mt-7" />
 
             {/* Addresses Section Skeleton */}
-            <Card className="mt-7 px-0">
+            <Card willHover={false} className="mt-7 px-0">
                 <div className="px-6 py-4 border-b border-my-grey">
                     <div className="h-6 w-32 skeleton-shimmer rounded" />
                 </div>
@@ -134,7 +134,7 @@ const PoolDetailSkeleton: React.FC<PoolDetailSkeletonProps> = ({ className }) =>
             </Card>
 
             {/* Collateral Exposure Section Skeleton */}
-            <Card className="mt-7 px-0">
+            <Card willHover={false} className="mt-7 px-0">
                 <div className="px-6 py-4 border-b border-my-grey">
                     <div className="h-6 w-40 skeleton-shimmer rounded" />
                 </div>

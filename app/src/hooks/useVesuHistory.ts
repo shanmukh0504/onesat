@@ -18,7 +18,7 @@ export function useVesuHistory(
   walletAddress: string | null
 ): UseVesuHistoryResult {
   const [history, setHistory] = useState<VesuHistoryResponse[] | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchHistory = async () => {
@@ -33,13 +33,8 @@ export function useVesuHistory(
       setError(null);
       const data = await vesuAPI.getUserHistory(walletAddress);
 
-      // Handle the new API response format
-      if (
-        data &&
-        data.status === "Ok" &&
-        data.result &&
-        Array.isArray(data.result)
-      ) {
+      // Handle the correct API response format from your example
+      if (data && data.status === "Ok" && data.result && Array.isArray(data.result)) {
         setHistory(data.result);
       } else if (Array.isArray(data)) {
         setHistory(data);

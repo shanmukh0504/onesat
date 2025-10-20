@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useVesuPools } from "@/hooks/useVesuPools";
 import PoolCard from "./PoolCard";
-import PoolCardSkeleton from "./PoolCardSkeleton";
+import PoolCardSkeleton from "../skeletons/PoolCardSkeleton";
 import Pagination from "./Pagination";
 import { cn } from "@/lib/utils";
 import { PoolCardData, CURRENCIES, PROJECTS } from "@/types/earn";

@@ -18,6 +18,21 @@ type Balances = {
   starknet?: NumericString | null; // in wei
 };
 
+export interface PendingDeposit {
+  depositId: string;
+  swapId: string | null;
+  poolId: string;
+  selectedAsset: any;
+  createdAt: string;
+  status: string;
+  depositAddress: string;
+  amount: string;
+  token: string;
+  targetAddress: string;
+  depositTxHash: string | null;
+  atomiqSwapId: string | null;
+}
+
 const BITCOIN_NETWORK = BitcoinNetwork.TESTNET4;
 const BITCOIN_RPC_URL = "https://mempool.space/testnet4/api";
 const STARKNET_RPC_URL = "https://starknet-sepolia.public.blastapi.io/rpc/v0_8";
@@ -48,6 +63,9 @@ type WalletState = {
   // balances
   balances: Balances;
 
+  // pending deposits
+  pendingDeposits: PendingDeposit[];
+
   // actions
   detectProviders: () => void;
   connect: () => Promise<void>;
@@ -58,6 +76,10 @@ type WalletState = {
   disconnectStarknet: () => Promise<void>;
   refreshBalances: () => Promise<void>;
   reconnectWallets: () => Promise<void>;
+  fetchPendingDeposits: () => Promise<void>;
+  addPendingDeposit: (deposit: PendingDeposit) => void;
+  removePendingDeposit: (depositId: string) => void;
+  updatePendingDeposit: (depositId: string, updates: Partial<PendingDeposit>) => void;
 };
 
 async function fetchBitcoinBalanceSats(
@@ -95,8 +117,8 @@ async function fetchStacksBalanceUstx(
     return typeof balance === "string"
       ? balance
       : balance != null
-      ? String(balance)
-      : null;
+        ? String(balance)
+        : null;
   } catch {
     return null;
   }
@@ -152,6 +174,7 @@ export const useWallet = create<WalletState>()(
       bitcoinWalletType: null,
       starknetWalletName: null,
       balances: {},
+      pendingDeposits: [],
 
       detectProviders: () => {
         if (typeof window === "undefined") return;
@@ -288,7 +311,7 @@ export const useWallet = create<WalletState>()(
           for (let i = 0; i < maxAttempts; i++) {
             if (
               walletAccount.address !==
-                "0x0000000000000000000000000000000000000000000000000000000000000000" &&
+              "0x0000000000000000000000000000000000000000000000000000000000000000" &&
               walletAccount.address !== ""
             ) {
               break;
@@ -394,6 +417,84 @@ export const useWallet = create<WalletState>()(
         set({ balances: { ...get().balances, btc, stacks: stx } });
         // Starknet balance retrieval requires a JSON-RPC provider; leaving as null for now
       },
+
+      fetchPendingDeposits: async () => {
+        const { starknetAddress } = get();
+        if (!starknetAddress) return;
+
+        try {
+          // Import vesuAPI dynamically to avoid circular dependencies
+          const { vesuAPI } = await import("@/lib/api");
+          const response = await vesuAPI.getUserHistory(starknetAddress);
+
+          if (response && Array.isArray(response)) {
+            const now = new Date();
+            const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+            // Filter for deposits created in the last 24 hours with status "created"
+            const mapped = response
+              .filter((deposit: any) => {
+                const createdAt = new Date(deposit.created_at);
+                return (
+                  deposit.status === "created" &&
+                  createdAt > twentyFourHoursAgo
+                );
+              })
+              .map((deposit: any) => ({
+                depositId: deposit.deposit_id,
+                swapId: deposit.atomiq_swap_id,
+                poolId: deposit.target_address, // Using target_address as poolId
+                selectedAsset: null, // Will need to be populated from pool data if needed
+                createdAt: deposit.created_at,
+                status: deposit.status,
+                depositAddress: deposit.deposit_address,
+                amount: deposit.amount,
+                token: deposit.token,
+                targetAddress: deposit.target_address,
+                // IMPORTANT: server's deposit_tx_hash is Starknet tx. Preserve any existing BTC tx hash we may have stored earlier.
+                depositTxHash: null,
+                atomiqSwapId: deposit.atomiq_swap_id,
+              }));
+
+            // Merge with existing to preserve client-side fields like BTC depositTxHash
+            const existing = get().pendingDeposits || [];
+            const merged = mapped.map((n: any) => {
+              const prev = existing.find((p) => p.depositId === n.depositId);
+              return {
+                ...n,
+                depositTxHash: prev?.depositTxHash ?? n.depositTxHash,
+                atomiqSwapId: n.atomiqSwapId ?? prev?.atomiqSwapId ?? n.swapId ?? prev?.swapId ?? null,
+              };
+            });
+
+            set({ pendingDeposits: merged });
+          }
+        } catch (error) {
+          console.error("Failed to fetch pending deposits:", error);
+        }
+      },
+
+      addPendingDeposit: (deposit: PendingDeposit) => {
+        set((state) => ({
+          pendingDeposits: [...state.pendingDeposits, deposit],
+        }));
+      },
+
+      removePendingDeposit: (depositId: string) => {
+        set((state) => ({
+          pendingDeposits: state.pendingDeposits.filter(
+            (d) => d.depositId !== depositId
+          ),
+        }));
+      },
+
+      updatePendingDeposit: (depositId: string, updates: Partial<PendingDeposit>) => {
+        set((state) => ({
+          pendingDeposits: state.pendingDeposits.map((d) =>
+            d.depositId === depositId ? { ...d, ...updates } : d
+          ),
+        }));
+      },
     }),
     {
       name: "wallet-store",
@@ -410,6 +511,7 @@ export const useWallet = create<WalletState>()(
         bitcoinWalletType: state.bitcoinWalletType,
         starknetWalletName: state.starknetWalletName,
         balances: state.balances,
+        pendingDeposits: state.pendingDeposits,
       }),
     }
   )
