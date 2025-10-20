@@ -87,8 +87,9 @@ export function useVesuDeposit(
         const getAccount = async () => {
             try {
                 const wallet = await connect({ modalMode: "neverAsk" });
-                if (wallet?.account) {
-                    setStarknetAccount(wallet.account as Account);
+                const presentAccount = (wallet as any)?.account || (wallet as any)?.accounts?.[0];
+                if (presentAccount) {
+                    setStarknetAccount(presentAccount as Account);
                 }
             } catch (err) {
                 console.error("Failed to get Starknet account:", err);
