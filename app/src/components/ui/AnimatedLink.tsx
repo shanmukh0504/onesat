@@ -23,7 +23,7 @@ const AnimatedLink: React.FC<AnimatedLinkProps> = ({
     variant = 'default'
 }) => {
     const pathname = usePathname();
-    const isActive = pathname === href;
+    const isActive = pathname === href || (href === '/earn' && pathname.startsWith('/earn/'));
 
     const getUnderlineClasses = () => {
         if (variant === 'mobile') {

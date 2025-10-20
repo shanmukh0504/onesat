@@ -1,18 +1,50 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { VesuPositionResponse } from "@/types/vesu";
 import Card from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import Button from "@/components/ui/Button";
+import { WithdrawModal } from "./WithdrawModal";
+import { ModifyPositionModal } from "./ModifyPositionModal";
+import { useVesuWithdraw } from "@/hooks/useVesuWithdraw";
+import { useVesuDeposit } from "@/hooks/useVesuDeposit";
+import { useWallet } from "@/store/useWallet";
 
 interface PortfolioCardProps {
   data: VesuPositionResponse;
   className?: string;
+  onWithdrawSuccess?: () => void;
+  onModifySuccess?: () => void;
 }
 
-const PortfolioCard: React.FC<PortfolioCardProps> = ({ data, className }) => {
+const PortfolioCard: React.FC<PortfolioCardProps> = ({
+  data,
+  className,
+  onWithdrawSuccess,
+  onModifySuccess
+}) => {
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
+  const { starknetAddress } = useWallet();
+
+  // Get V-Token address from collateralShares
+  const vTokenAddress = data.collateralShares.address;
+
+  // Use withdraw hook
+  const {
+    maxWithdraw,
+    withdraw,
+    isLoading: isWithdrawLoading
+  } = useVesuWithdraw(vTokenAddress, starknetAddress);
+
+  // Use deposit hook
+  const {
+    maxDeposit,
+    deposit,
+    isLoading: isDepositLoading
+  } = useVesuDeposit(vTokenAddress, starknetAddress);
   // Format collateral value
   const formatValue = (value: string, decimals: number) => {
     const num = parseFloat(value) / Math.pow(10, decimals);
@@ -62,128 +94,207 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ data, className }) => {
   const supplyAPY = "4.742";
   const monthlyYield = "0.95";
 
+  // Handle withdraw
+  const handleWithdraw = async (amount: string) => {
+    if (!starknetAddress) {
+      throw new Error("Wallet not connected");
+    }
+
+    // Convert amount to contract scale
+    const amountInDecimals = BigInt(
+      Math.floor(parseFloat(amount) * Math.pow(10, data.collateral.decimals))
+    );
+
+    // Call withdraw contract function
+    const txHash = await withdraw(
+      amountInDecimals.toString(),
+      starknetAddress, // receiver
+      starknetAddress  // owner
+    );
+
+    console.log("Withdraw transaction:", txHash);
+
+    // Call success callback
+    if (onWithdrawSuccess) {
+      onWithdrawSuccess();
+    }
+  };
+
+  // Handle deposit (add liquidity)
+  const handleDeposit = async (amount: string) => {
+    if (!starknetAddress) {
+      throw new Error("Wallet not connected");
+    }
+
+    // Convert amount to contract scale
+    const amountInDecimals = BigInt(
+      Math.floor(parseFloat(amount) * Math.pow(10, data.collateral.decimals))
+    );
+
+    // Call deposit contract function
+    const txHash = await deposit(
+      amountInDecimals.toString(),
+      starknetAddress // receiver
+    );
+
+    console.log("Deposit transaction:", txHash);
+
+    // Call success callback
+    if (onModifySuccess) {
+      onModifySuccess();
+    }
+  };
+
+  // Handle modify withdraw (same as regular withdraw but called from modify modal)
+  const handleModifyWithdraw = async (amount: string) => {
+    await handleWithdraw(amount);
+    if (onModifySuccess) {
+      onModifySuccess();
+    }
+  };
+
   return (
-    <Card className={cn("text-left space-y-8 xs:space-y-10", className)}>
-      {/* Header */}
-      <div className="flex flex-col justify-center xs:flex-row items-center xs:justify-between gap-3 xs:gap-0">
-        <div className="flex items-center gap-2 xs:gap-3">
-          <div className="w-6 h-6 xs:w-7 xs:h-7 flex items-center justify-center bg-my-grey">
-            <Image
-              src="https://vesu.xyz/img/curator-logos/vesu-light.png"
-              alt="Vesu"
-              width={20}
-              height={20}
-              className="w-4 h-4 xs:w-5 xs:h-5"
-            />
-          </div>
-          <div className="flex items-center gap-1 xs:gap-2">
-            <h3 className="font-semibold text-base">Vesu</h3>
-            <span className="w-1 h-1 bg-my-grey rounded-full"></span>
-            <span className="text-sm">Genesis</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 xs:gap-3">
-          <div className="flex items-center gap-1">
-            <Image
-              src="https://garden-finance.imgix.net/token-images/bitcoin.svg"
-              alt="Bitcoin"
-              width={20}
-              height={20}
-              className="w-4 h-4 xs:w-5 xs:h-5"
-            />
-            <div className="text-xs">BTC</div>
-          </div>
-          <Image
-            src="/icons/right.svg"
-            alt="Arrow"
-            width={16}
-            height={16}
-            className="w-3 h-3 xs:w-4 xs:h-4"
-          />
-          <div className="flex items-center gap-1">
-            <Image
-              src="https://garden.imgix.net/token-images/wbtc.svg"
-              alt="WBTC"
-              width={20}
-              height={20}
-              className="w-4 h-4 xs:w-5 xs:h-5"
-            />
-            <div className="text-xs">WBTC</div>
+    <>
+      <Card className={cn("text-left space-y-8 xs:space-y-10", className)}>
+        {/* Header */}
+        <div className="flex flex-col justify-center xs:flex-row items-center xs:justify-between gap-3 xs:gap-0">
+          <div className="flex items-center gap-2 xs:gap-3">
+            <div className="w-6 h-6 xs:w-7 xs:h-7 flex items-center justify-center bg-my-grey">
+              <Image
+                src="https://vesu.xyz/img/curator-logos/vesu-light.png"
+                alt="Vesu"
+                width={20}
+                height={20}
+                className="w-4 h-4 xs:w-5 xs:h-5"
+              />
+            </div>
+            <div className="flex items-center gap-1 xs:gap-2">
+              <h3 className="font-semibold text-base">Vesu</h3>
+              <span className="w-1 h-1 bg-my-grey rounded-full"></span>
+              <span className="text-sm">Genesis</span>
+            </div>
           </div>
 
-          <div className="relative">
-            <Image
-              src="/icons/info.svg"
-              alt="Info"
-              width={16}
-              height={16}
-              className="w-3 h-3 xs:w-4 xs:h-4 cursor-help"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Metrics */}
-      <div className="grid grid-cols-2 xs:grid-cols-4 gap-3 xs:gap-4 lg:px-4">
-        <div className="flex flex-col text-center items-center justify-center">
-          <div className="text-sm xs:text-lg font-bold">{supplyAPY}%</div>
-          <div className="text-xs">Supply APY</div>
-        </div>
-
-        <div className="flex flex-col text-center items-center justify-center">
-          <div className="text-sm xs:text-lg font-bold">${monthlyYield}</div>
-          <div className="text-xs">Monthly yield</div>
-        </div>
-
-        <div className="flex flex-col text-center items-center justify-center">
-          <div className="flex items-center justify-center">
-            <div className="text-sm xs:text-lg font-bold">
-              {collateralAmount}
+          <div className="flex items-center gap-2 xs:gap-3">
+            <div className="flex items-center gap-1">
+              <Image
+                src="https://garden-finance.imgix.net/token-images/bitcoin.svg"
+                alt="Bitcoin"
+                width={20}
+                height={20}
+                className="w-4 h-4 xs:w-5 xs:h-5"
+              />
+              <div className="text-xs">BTC</div>
             </div>
             <Image
-              src="https://garden.imgix.net/token-images/wbtc.svg"
-              alt="WBTC"
+              src="/icons/right.svg"
+              alt="Arrow"
               width={16}
               height={16}
-              className="w-3 h-3 xs:w-4 xs:h-4 ml-1"
+              className="w-3 h-3 xs:w-4 xs:h-4"
             />
+            <div className="flex items-center gap-1">
+              <Image
+                src="https://garden.imgix.net/token-images/wbtc.svg"
+                alt="WBTC"
+                width={20}
+                height={20}
+                className="w-4 h-4 xs:w-5 xs:h-5"
+              />
+              <div className="text-xs">WBTC</div>
+            </div>
+
+            <div className="relative">
+              <Image
+                src="/icons/info.svg"
+                alt="Info"
+                width={16}
+                height={16}
+                className="w-3 h-3 xs:w-4 xs:h-4 cursor-help"
+              />
+            </div>
           </div>
-          <div className="text-xs">Current value</div>
         </div>
 
-        <div className="flex flex-col text-center items-center justify-center">
-          <div className="text-sm xs:text-lg font-bold">
-            ${collateralUsdValue}
+        {/* Metrics */}
+        <div className="grid grid-cols-2 xs:grid-cols-4 gap-3 xs:gap-4 lg:px-4">
+          <div className="flex flex-col text-center items-center justify-center">
+            <div className="text-sm xs:text-lg font-bold">{supplyAPY}%</div>
+            <div className="text-xs">Supply APY</div>
           </div>
-          <div className="text-xs">USD value</div>
-        </div>
-      </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-3">
-        <Button
-          variant="secondary"
-          className="flex-1"
-          onClick={() => {
-            // Handle modify action
-            console.log("Modify position");
-          }}
-        >
-          Modify
-        </Button>
-        <Button
-          variant="secondary"
-          className="flex-1"
-          onClick={() => {
-            // Handle withdraw action
-            console.log("Withdraw position");
-          }}
-        >
-          Withdraw
-        </Button>
-      </div>
-    </Card>
+          <div className="flex flex-col text-center items-center justify-center">
+            <div className="text-sm xs:text-lg font-bold">${monthlyYield}</div>
+            <div className="text-xs">Monthly yield</div>
+          </div>
+
+          <div className="flex flex-col text-center items-center justify-center">
+            <div className="flex items-center justify-center">
+              <div className="text-sm xs:text-lg font-bold">
+                {collateralAmount}
+              </div>
+              <Image
+                src="https://garden.imgix.net/token-images/wbtc.svg"
+                alt="WBTC"
+                width={16}
+                height={16}
+                className="w-3 h-3 xs:w-4 xs:h-4 ml-1"
+              />
+            </div>
+            <div className="text-xs">Current value</div>
+          </div>
+
+          <div className="flex flex-col text-center items-center justify-center">
+            <div className="text-sm xs:text-lg font-bold">
+              ${collateralUsdValue}
+            </div>
+            <div className="text-xs">USD value</div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => setIsModifyModalOpen(true)}
+            disabled={isWithdrawLoading || isDepositLoading}
+          >
+            Modify
+          </Button>
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => setIsWithdrawModalOpen(true)}
+            disabled={isWithdrawLoading || isDepositLoading}
+          >
+            Withdraw
+          </Button>
+        </div>
+      </Card>
+
+      {/* Withdraw Modal */}
+      <WithdrawModal
+        isOpen={isWithdrawModalOpen}
+        onClose={() => setIsWithdrawModalOpen(false)}
+        position={data}
+        onWithdraw={handleWithdraw}
+        maxWithdraw={maxWithdraw}
+        isLoading={isWithdrawLoading}
+      />
+
+      {/* Modify Position Modal */}
+      <ModifyPositionModal
+        isOpen={isModifyModalOpen}
+        onClose={() => setIsModifyModalOpen(false)}
+        position={data}
+        onDeposit={handleDeposit}
+        onWithdraw={handleModifyWithdraw}
+        maxWithdraw={maxWithdraw}
+        maxDeposit={maxDeposit}
+        isLoading={isWithdrawLoading || isDepositLoading}
+      />
+    </>
   );
 };
 

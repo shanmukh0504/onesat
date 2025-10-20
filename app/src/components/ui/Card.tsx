@@ -85,7 +85,7 @@ const Card: React.FC<CardProps> = ({
       onClick();
     }
 
-    if (isMobile) {
+    if (isMobile && willHover) {
       e.stopPropagation();
       const newElevatedId = isElevated ? null : cardIdRef.current;
       globalElevatedCardId = newElevatedId;
@@ -100,14 +100,14 @@ const Card: React.FC<CardProps> = ({
         "border-2 border-my-grey p-6 transition-all duration-300 ease-out",
         cursorPointer && "cursor-pointer",
         isActive &&
-          willHover &&
-          "shadow-[4px_4px_0_0_#9ea393] -translate-x-1 -translate-y-1",
+        willHover &&
+        "shadow-[4px_4px_0_0_#9ea393] -translate-x-1 -translate-y-1",
         !isActive &&
-          willHover &&
-          "sm:hover:shadow-[4px_4px_0_0_#9ea393] sm:hover:-translate-x-1 sm:hover:-translate-y-1",
+        willHover &&
+        "sm:hover:shadow-[4px_4px_0_0_#9ea393] sm:hover:-translate-x-1 sm:hover:-translate-y-1",
         isMobile &&
-          isElevated &&
-          "shadow-[4px_4px_0_0_#9ea393] -translate-x-1 -translate-y-1",
+        isElevated &&
+        "shadow-[4px_4px_0_0_#9ea393] -translate-x-1 -translate-y-1",
         disabled && "opacity-50 cursor-not-allowed",
         !disabled && (isMobile || onClick) && cursorPointer && "cursor-pointer",
         className
